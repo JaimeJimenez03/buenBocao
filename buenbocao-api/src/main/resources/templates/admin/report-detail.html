@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+
+<head>
+    <title>Reporte · Admin</title>
+</head>
+
+<body>
+    <div>
+        <div class="flex-row" style="margin-bottom:6px;">
+            <a th:href="@{/adminControlPanel/reports}" class="btn btn-secondary btn-sm">← Volver</a>
+            <a th:href="@{/adminControlPanel/my-queue}" class="btn btn-secondary btn-sm">📋 Mi cola</a>
+            <div class="page-title" style="margin:0;">Reporte #<span th:text="${report.id}"></span></div>
+        </div>
+        <div class="page-sub" style="margin-bottom:20px;">Detalle y acciones de moderación</div>
+
+        <!-- Flash messages -->
+        <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+        <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+
+        <div style="display:grid; grid-template-columns: 1fr 340px; gap:20px; align-items:start;">
+
+            <!-- Columna izquierda -->
+            <div>
+
+                <!-- Info básica del reporte -->
+                <div class="card">
+                    <div class="card-title">Información del reporte</div>
+                    <table style="width:100%; font-size:13px; border-collapse:collapse;">
+                        <tr>
+                            <td
+                                style="width:160px; color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">
+                                Estado</td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6;">
+                                <span th:switch="${report.status}">
+                                    <span th:case="'PENDING'" class="badge badge-pending"><span
+                                            class="dot dot-pending"></span> Pendiente</span>
+                                    <span th:case="'REVIEWING'" class="badge badge-reviewing"><span
+                                            class="dot dot-reviewing"></span> En revisión</span>
+                                    <span th:case="'RESOLVED'" class="badge badge-resolved"><span
+                                            class="dot dot-resolved"></span> Resuelto</span>
+                                    <span th:case="'DISMISSED'" class="badge badge-dismissed"><span
+                                            class="dot dot-dismissed"></span> Desestimado</span>
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">Tipo de
+                                contenido</td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6;">
+                                <span th:switch="${report.targetType}">
+                                    <span th:case="'USER'" class="badge badge-user">Usuario</span>
+                                    <span th:case="'RECIPE'" class="badge badge-recipe">Receta</span>
+                                    <span th:case="'REVIEW'" class="badge badge-review">Reseña</span>
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">ID del
+                                contenido</td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6; font-weight:600;"
+                                th:text="${report.targetId}"></td>
+                        </tr>
+                        <tr th:if="${report.targetName != null}">
+                            <td style="color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">Nombre
+                                del contenido</td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6; font-weight:600;"
+                                th:text="${report.targetName}"></td>
+                        </tr>
+                        <tr th:if="${report.targetAuthorUsername != null}">
+                            <td style="color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">Autor
+                                del contenido</td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6;"
+                                th:text="${report.targetAuthorUsername}"></td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">
+                                Motivo(s)</td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6;">
+                                <span th:each="reason,iter : ${report.reasons}">
+                                    <span class="badge badge-pending" th:text="${reason}"></span>
+                                </span>
+                                <span th:if="${report.reasons == null or report.reasons.empty}"
+                                    class="text-muted">—</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">
+                                Reportado por</td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6; font-weight:600;"
+                                th:text="${report.reporterUsername}"></td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">
+                                Descripción</td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6;"
+                                th:text="${report.description ?: '—'}"></td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">Fecha
+                            </td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6;"
+                                th:text="${#temporals.format(report.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); padding:7px 0; border-bottom:1px solid #F0ECE6;">
+                                Resuelto por</td>
+                            <td style="padding:7px 0; border-bottom:1px solid #F0ECE6;"
+                                th:text="${report.resolvedByUsername ?: '—'}"></td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); padding:7px 0;">Notas del moderador</td>
+                            <td style="padding:7px 0;" th:text="${report.moderatorNotes ?: '—'}"></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- ══════════════════════════════════════════
+                     CONTEXTO: RECETA
+                     ══════════════════════════════════════════ -->
+                <div th:if="${targetRecipe != null}" class="card" style="padding:0; overflow:hidden;">
+                    <div
+                        style="padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#E65100" stroke-width="2"
+                            style="width:16px;height:16px;flex-shrink:0;">
+                            <path
+                                d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
+                            <line x1="6" y1="17" x2="18" y2="17" />
+                            <line x1="6" y1="21" x2="18" y2="21" />
+                        </svg>
+                        <span class="card-title" style="margin:0; color:#E65100;">Contexto: Receta reportada</span>
+                        <span th:if="${targetRecipe.status?.name() == 'LOCKED'}" class="badge badge-banned"
+                            style="margin-left:auto;">🔒 Bloqueada por admin</span>
+                        <span th:unless="${targetRecipe.status?.name() == 'LOCKED'}"
+                            th:switch="${targetRecipe.status?.name()}" style="margin-left:auto;">
+                            <span th:case="'PUBLISHED'" class="badge badge-resolved">Publicada</span>
+                            <span th:case="'DRAFT'" class="badge badge-dismissed">Borrador</span>
+                            <span th:case="'ARCHIVED'" class="badge badge-banned">Archivada</span>
+                        </span>
+                    </div>
+
+                    <!-- Portada de la receta -->
+                    <div th:if="${targetRecipe.media != null and !targetRecipe.media.empty}"
+                        style="background:#F3EDE3; text-align:center; max-height:280px; overflow:hidden;">
+                        <img th:each="m,i : ${targetRecipe.media}" th:if="${i.first and m.mediaType?.name() == 'IMAGE'}"
+                            th:src="${m.mediaUrl}"
+                            style="width:100%; max-height:280px; object-fit:cover; display:block;"
+                            alt="Portada de la receta" onerror="this.style.display='none'" />
+                    </div>
+
+                    <div style="padding:20px;">
+                        <!-- Título y descripción -->
+                        <div style="font-size:18px; font-weight:700; color:var(--text); margin-bottom:4px;"
+                            th:text="${targetRecipe.title}"></div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;"
+                            th:text="'/receta/' + ${targetRecipe.slug}"></div>
+                        <p style="font-size:13px; color:#444; line-height:1.6; margin-bottom:16px;"
+                            th:text="${targetRecipe.description}"></p>
+
+                        <!-- Metadatos en chips -->
+                        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
+                            <span
+                                style="background:#F9F6F1; border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:12px; display:flex; align-items:center; gap:5px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"
+                                    style="width:13px;height:13px;">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                <span th:text="${targetRecipe.prepTimeMinutes} + ' min prep'"></span>
+                            </span>
+                            <span
+                                style="background:#F9F6F1; border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:12px; display:flex; align-items:center; gap:5px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"
+                                    style="width:13px;height:13px;">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                </svg>
+                                <span th:text="${targetRecipe.servings} + ' raciones'"></span>
+                            </span>
+                            <span
+                                style="background:#F9F6F1; border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:12px;">
+                                Dificultad: <strong th:text="${targetRecipe.difficulty}"></strong>
+                            </span>
+                            <span th:if="${targetRecipe.typeDish != null}"
+                                style="background:#F9F6F1; border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:12px;"
+                                th:text="${targetRecipe.typeDish}"></span>
+                            <span th:if="${targetRecipe.mealTime != null}"
+                                style="background:#F9F6F1; border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:12px;"
+                                th:text="${targetRecipe.mealTime}"></span>
+                        </div>
+
+                        <!-- Ingredientes -->
+                        <div th:if="${targetRecipe.ingredients != null and !targetRecipe.ingredients.empty}">
+                            <div
+                                style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px;">
+                                Ingredientes (<span th:text="${targetRecipe.ingredients.size()}"></span>)
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:16px;">
+                                <div th:each="ing : ${targetRecipe.ingredients}"
+                                    style="font-size:12px; padding:5px 8px; background:#FAFAF8; border-radius:6px; border:1px solid #F0ECE6; display:flex; align-items:center; gap:6px;">
+                                    <span style="color:var(--green-main); font-weight:700;"
+                                        th:text="${ing.quantity} + ' ' + ${ing.unit}"></span>
+                                    <span th:text="${ing.ingredient?.name}"></span>
+                                    <span th:if="${ing.notes}" style="color:var(--text-muted); font-style:italic;"
+                                        th:text="'(' + ${ing.notes} + ')'"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pasos (resumen) -->
+                        <div th:if="${targetRecipe.steps != null and !targetRecipe.steps.empty}">
+                            <div
+                                style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px;">
+                                Pasos (<span th:text="${targetRecipe.steps.size()}"></span>)
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:6px;">
+                                <div th:each="step : ${targetRecipe.steps}"
+                                    style="font-size:12px; padding:8px 10px; background:#FAFAF8; border-radius:6px; border-left:3px solid var(--green-border); display:flex; gap:10px;">
+                                    <span style="font-weight:700; color:var(--green-main); flex-shrink:0;"
+                                        th:text="${step.stepNumber} + '.'"></span>
+                                    <span style="color:#444; line-height:1.5;" th:text="${step.description}"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tags y dietas -->
+                        <div th:if="${targetRecipe.tags != null and !targetRecipe.tags.empty}" style="margin-top:12px;">
+                            <span th:each="tag : ${targetRecipe.tags}"
+                                style="display:inline-block; background:var(--green-pale); color:var(--green-main); border:1px solid var(--green-border); border-radius:99px; padding:2px 9px; font-size:11px; font-weight:600; margin:2px;"
+                                th:text="'#' + ${tag.name}"></span>
+                        </div>
+                        <div th:if="${targetRecipe.diets != null and !targetRecipe.diets.empty}"
+                            style="margin-top:6px;">
+                            <span th:each="diet : ${targetRecipe.diets}"
+                                style="display:inline-block; background:#F3E5F5; color:#7B1FA2; border:1px solid #CE93D8; border-radius:99px; padding:2px 9px; font-size:11px; font-weight:600; margin:2px;"
+                                th:text="${diet.name}"></span>
+                        </div>
+
+                        <!-- Fecha de creación -->
+                        <div style="margin-top:14px; font-size:11px; color:var(--text-muted);">
+                            Creada el <span
+                                th:text="${targetRecipe.createdAt != null} ? ${#temporals.format(targetRecipe.createdAt,'dd/MM/yyyy HH:mm')} : '—'"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════════════════════════════════════════
+                     CONTEXTO: USUARIO REPORTADO
+                     ══════════════════════════════════════════ -->
+                <div th:if="${report.targetType == 'USER' and contentAuthor != null}" class="card"
+                    style="padding:0; overflow:hidden;">
+                    <div
+                        style="padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2"
+                            style="width:16px;height:16px;flex-shrink:0;">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span class="card-title" style="margin:0; color:#1565C0;">Contexto: Perfil del usuario
+                            reportado</span>
+                        <div style="margin-left:auto;">
+                            <span th:if="${!contentAuthor.enabled}" class="badge badge-banned">Baneado</span>
+                            <span th:if="${contentAuthor.enabled}" class="badge badge-active">Activo</span>
+                        </div>
+                    </div>
+                    <div style="padding:20px;">
+                        <div style="display:flex; align-items:center; gap:16px; margin-bottom:18px;">
+                            <div
+                                style="width:52px; height:52px; border-radius:50%; background:#E3F2FD; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2"
+                                    style="width:24px;height:24px;">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div style="font-size:17px; font-weight:700;" th:text="${contentAuthor.username}"></div>
+                                <div style="font-size:13px; color:var(--text-muted);"
+                                    th:text="${contentAuthor.firstName} + ' ' + ${contentAuthor.lastName}"></div>
+                                <div style="font-size:12px; color:var(--text-muted);" th:text="${contentAuthor.email}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+                            <div
+                                style="background:#F9F6F1; border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
+                                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">Rol</div>
+                                <div style="font-weight:700; font-size:13px;" th:text="${contentAuthor.role}"></div>
+                            </div>
+                            <div
+                                style="background:#F9F6F1; border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
+                                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">Email
+                                    verificado</div>
+                                <div style="font-weight:700; font-size:13px;"
+                                    th:text="${contentAuthor.emailVerified} ? 'Sí' : 'No'"></div>
+                            </div>
+                            <div
+                                style="background:#F9F6F1; border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
+                                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">Miembro desde
+                                </div>
+                                <div style="font-weight:700; font-size:13px;"
+                                    th:text="${contentAuthor.createdAt != null} ? ${#temporals.format(contentAuthor.createdAt,'dd/MM/yyyy')} : '—'">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info del ban si está baneado -->
+                        <div th:if="${!contentAuthor.enabled}"
+                            style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:10px; padding:12px 14px; font-size:12px; color:var(--red-text);">
+                            <div style="font-weight:700; margin-bottom:4px;">⚠ Usuario baneado</div>
+                            <div><strong>Motivo:</strong> <span
+                                    th:text="${contentAuthor.banReason ?: 'Sin motivo registrado'}"></span></div>
+                            <div th:if="${contentAuthor.banExpiresAt != null}">
+                                <strong>Expira:</strong> <span
+                                    th:text="${#temporals.format(contentAuthor.banExpiresAt,'dd/MM/yyyy')}"></span>
+                            </div>
+                            <div th:if="${contentAuthor.banExpiresAt == null}"><strong>Tipo:</strong> Permanente</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Otros reportes sobre el mismo contenido -->
+                <div th:if="${relatedReports != null and !relatedReports.empty}" class="card"
+                    style="padding:0; overflow:hidden;">
+                    <div
+                        style="padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                        <span class="card-title" style="margin:0;">Otros reportes sobre este contenido</span>
+                        <span class="badge badge-pending" th:text="${relatedReports.size()} + ' más'"></span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#ID</th>
+                                    <th>Estado</th>
+                                    <th>Motivo(s)</th>
+                                    <th>Por</th>
+                                    <th>Fecha</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="r : ${relatedReports}">
+                                    <td style="font-weight:600;">#<span th:text="${r.id}"></span></td>
+                                    <td>
+                                        <span th:switch="${r.status}">
+                                            <span th:case="'PENDING'" class="badge badge-pending"><span
+                                                    class="dot dot-pending"></span> Pendiente</span>
+                                            <span th:case="'REVIEWING'" class="badge badge-reviewing"><span
+                                                    class="dot dot-reviewing"></span> Revisando</span>
+                                            <span th:case="'RESOLVED'" class="badge badge-resolved"><span
+                                                    class="dot dot-resolved"></span> Resuelto</span>
+                                            <span th:case="'DISMISSED'" class="badge badge-dismissed"><span
+                                                    class="dot dot-dismissed"></span> Desestimado</span>
+                                        </span>
+                                    </td>
+                                    <td style="font-size:12px; max-width:180px;">
+                                        <span th:each="reason,iter : ${r.reasons}"
+                                            th:text="${reason + (iter.last ? '' : ', ')}" class="text-muted"></span>
+                                    </td>
+                                    <td style="font-size:12px;" th:text="${r.reporterUsername}"></td>
+                                    <td style="font-size:11px;" class="text-muted"
+                                        th:text="${#temporals.format(r.createdAt,'dd/MM/yy HH:mm')}"></td>
+                                    <td><a th:href="@{/adminControlPanel/reports/{id}(id=${r.id})}"
+                                            class="btn btn-secondary btn-sm">Ver</a></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Columna derecha: acciones -->
+            <div>
+
+                <!-- Info del autor del contenido (para recetas/reseñas) -->
+                <div class="card" th:if="${contentAuthor != null and report.targetType != 'USER'}">
+                    <div class="card-title">Autor del contenido</div>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                        <div
+                            style="width:40px; height:40px; border-radius:20px; background:#E8F5E9; display:flex; align-items:center; justify-content:center;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="2"
+                                style="width:20px;height:20px;">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-weight:700; font-size:14px;" th:text="${contentAuthor.username}"></div>
+                            <div style="font-size:12px; color:var(--text-muted);" th:text="${contentAuthor.email}">
+                            </div>
+                        </div>
+                        <div style="margin-left:auto;">
+                            <span th:if="${!contentAuthor.enabled}" class="badge badge-banned">Baneado</span>
+                            <span th:if="${contentAuthor.enabled}" class="badge badge-active">Activo</span>
+                        </div>
+                    </div>
+
+                    <div th:if="${!contentAuthor.enabled}"
+                        style="background:var(--red-bg); border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:12px; color:var(--red-text);">
+                        <strong>Motivo del ban:</strong> <span
+                            th:text="${contentAuthor.banReason ?: 'Sin motivo'}"></span>
+                        <span th:if="${contentAuthor.banExpiresAt != null}"> · Expira: <span
+                                th:text="${#temporals.format(contentAuthor.banExpiresAt,'dd/MM/yyyy')}"></span></span>
+                        <span th:if="${contentAuthor.banExpiresAt == null}"> · Permanente</span>
+                    </div>
+                    <form th:if="${!contentAuthor.enabled}" method="post"
+                        th:action="@{/adminControlPanel/reports/{id}/unban-user(id=${report.id})}"
+                        onsubmit="return confirm('¿Desbanear a este usuario?')">
+                        <button type="submit" class="btn btn-secondary" style="width:100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
+                                style="width:14px;height:14px;stroke:currentColor;">
+                                <path d="M9 12l2 2 4-4" />
+                                <circle cx="12" cy="12" r="10" />
+                            </svg>
+                            Desbanear usuario
+                        </button>
+                    </form>
+
+                    <!-- Desbloquear receta si está bloqueada -->
+                    <form th:if="${targetRecipe != null and targetRecipe.status?.name() == 'LOCKED'}" method="post"
+                        th:action="@{/adminControlPanel/reports/{id}/unlock-recipe(id=${report.id})}"
+                        onsubmit="return confirm('¿Desbloquear y publicar esta receta?')" style="margin-top:8px;">
+                        <button type="submit" class="btn btn-secondary" style="width:100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
+                                style="width:14px;height:14px;stroke:currentColor;">
+                                <rect x="3" y="11" width="18" height="11" rx="2" />
+                                <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                            </svg>
+                            Desbloquear receta
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Marcar en revisión -->
+                <div class="card" th:if="${report.status == 'PENDING'}">
+                    <div class="card-title">Iniciar revisión</div>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+                        Marca el reporte como "En revisión" para indicar que lo estás analizando. Aparecerá en tu cola
+                        personal.
+                    </p>
+                    <form method="post" th:action="@{/adminControlPanel/reports/{id}/reviewing(id=${report.id})}">
+                        <button type="submit" class="btn btn-warning" style="width:100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
+                                style="width:14px;height:14px;stroke:currentColor;">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            Marcar en revisión
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Resolver / Desestimar -->
+                <div class="card" th:if="${report.status != 'RESOLVED' and report.status != 'DISMISSED'}">
+                    <div class="card-title">Resolver reporte</div>
+                    <form method="post" th:action="@{/adminControlPanel/reports/{id}/resolve(id=${report.id})}">
+                        <div class="form-group">
+                            <label class="form-label">Acción</label>
+                            <select name="status" class="form-control" required>
+                                <option value="RESOLVED">Resolver (acción tomada)</option>
+                                <option value="DISMISSED">Desestimar (sin acción)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notas del moderador (opcional)</label>
+                            <textarea name="notes" class="form-control" rows="3"
+                                placeholder="Explica la decisión tomada..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%;">Confirmar resolución</button>
+                    </form>
+                </div>
+
+                <!-- Archivar receta -->
+                <div class="card" th:if="${report.targetType == 'RECIPE'}">
+                    <div class="card-title" style="color:#E65100;">Archivar y bloquear receta</div>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+                        Archiva la receta y la bloquea por moderación. El usuario recibe una notificación
+                        y no podrá volver a publicarla hasta que un administrador la desbloquee.
+                    </p>
+                    <form method="post" th:action="@{/adminControlPanel/reports/{id}/delete-content(id=${report.id})}"
+                        onsubmit="return confirm('¿Archivar y bloquear esta receta por moderación?')">
+                        <div class="form-group">
+                            <label class="form-label">Motivo del bloqueo <span
+                                    style="color:var(--red-text);">*</span></label>
+                            <textarea name="reason" class="form-control" rows="3"
+                                placeholder="Explica el motivo del bloqueo. Esta nota quedará registrada y se enviará al usuario..."
+                                required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-warning" style="width:100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
+                                style="width:14px;height:14px;stroke:currentColor;">
+                                <rect x="3" y="11" width="18" height="11" rx="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                            Archivar y bloquear receta
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Eliminar reseña -->
+                <div class="card" th:if="${report.targetType == 'REVIEW'}">
+                    <div class="card-title">Eliminar reseña</div>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+                        Elimina permanentemente la reseña reportada. Esta acción no se puede deshacer.
+                    </p>
+                    <form method="post" th:action="@{/adminControlPanel/reports/{id}/delete-content(id=${report.id})}"
+                        onsubmit="return confirm('¿Eliminar esta reseña de forma permanente?')">
+                        <button type="submit" class="btn btn-danger" style="width:100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
+                                style="width:14px;height:14px;stroke:currentColor;">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                <path d="M10 11v6" />
+                                <path d="M14 11v6" />
+                            </svg>
+                            Eliminar reseña
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Banear usuario -->
+                <div class="card">
+                    <div class="card-title" style="color:var(--red-text);">Banear usuario</div>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+                        Banea al autor del contenido reportado y marca el reporte como resuelto.
+                    </p>
+                    <form method="post" th:action="@{/adminControlPanel/reports/{id}/ban-user(id=${report.id})}"
+                        onsubmit="return confirm('¿Seguro que quieres banear a este usuario?')">
+                        <div class="form-group">
+                            <label class="form-label">Motivo del ban</label>
+                            <input type="text" name="banReason" class="form-control"
+                                placeholder="Violación de las normas..." />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Duración (días, vacío = permanente)</label>
+                            <input type="number" name="durationDays" class="form-control" placeholder="ej: 7" min="1" />
+                        </div>
+                        <button type="submit" class="btn btn-danger" style="width:100%;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
+                                style="width:14px;height:14px;stroke:currentColor;">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                            </svg>
+                            Banear usuario
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

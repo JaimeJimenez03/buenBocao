@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+<head><title>Eventos · Admin</title></head>
+<body>
+<div>
+
+    <!-- Cabecera -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <div>
+            <div class="page-title" style="margin:0;">Eventos</div>
+            <div class="page-sub" style="margin:4px 0 0;">Solo los administradores pueden crear y gestionar eventos.</div>
+        </div>
+        <a th:href="@{/adminControlPanel/events/new}" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo evento
+        </a>
+    </div>
+
+    <!-- Flash -->
+    <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+    <div class="alert alert-error"   th:if="${error}"   th:text="${error}"></div>
+
+    <!-- Stats rápidas -->
+    <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom:20px;">
+        <div class="stat-card" style="cursor:pointer;" onclick="location.href=this.dataset.href"
+             th:data-href="@{/adminControlPanel/events(status='UPCOMING')}">
+            <div class="stat-label">Próximos</div>
+            <div class="stat-value" th:text="${totalUpcoming}">—</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer;" onclick="location.href=this.dataset.href"
+             th:data-href="@{/adminControlPanel/events(status='ACTIVE')}">
+            <div class="stat-label">Activos</div>
+            <div class="stat-value" style="color:#1565C0" th:text="${totalActive}">—</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer;" onclick="location.href=this.dataset.href"
+             th:data-href="@{/adminControlPanel/events(status='DRAFT')}">
+            <div class="stat-label">Borradores</div>
+            <div class="stat-value" style="color:#757575" th:text="${totalDraft}">—</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer;" onclick="location.href=this.dataset.href"
+             th:data-href="@{/adminControlPanel/events(status='FINISHED')}">
+            <div class="stat-label">Finalizados</div>
+            <div class="stat-value" style="color:#9E9E9E" th:text="${totalFinished}">—</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer;" onclick="location.href=this.dataset.href"
+             th:data-href="@{/adminControlPanel/events(status='CANCELLED')}">
+            <div class="stat-label">Cancelados</div>
+            <div class="stat-value red" th:text="${totalCancelled}">—</div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card">
+        <form method="get" th:action="@{/adminControlPanel/events}" class="flex-row" style="flex-wrap:wrap; gap:10px;">
+            <select name="status" class="form-control" style="width:180px;">
+                <option value="">Todos los estados</option>
+                <option th:each="s : ${statuses}" th:value="${s.name()}" th:text="${s.name()}"
+                        th:selected="${s.name() == filterStatus}"></option>
+            </select>
+            <select name="type" class="form-control" style="width:200px;">
+                <option value="">Todos los tipos</option>
+                <option th:each="t : ${eventTypes}" th:value="${t.name()}" th:text="${t.name()}"
+                        th:selected="${t.name() == filterType}"></option>
+            </select>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <a th:href="@{/adminControlPanel/events}" class="btn btn-secondary">Limpiar</a>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Título</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th>Participantes</th>
+                        <th>Modalidad</th>
+                        <th>Premium</th>
+                        <th>Organizador</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${eventsPage == null or eventsPage.content.empty}">
+                        <td colspan="11" style="text-align:center; padding:40px; color:#9E9E9E;">
+                            No hay eventos con estos filtros.
+                            <a th:href="@{/adminControlPanel/events/new}" style="color:var(--green-main); font-weight:600;">Crear el primero →</a>
+                        </td>
+                    </tr>
+                    <tr th:each="e : ${eventsPage?.content}">
+                        <td class="text-muted" style="font-size:12px;" th:text="${e.id}"></td>
+                        <td style="min-width:180px;">
+                            <div style="font-weight:600;" th:text="${e.title}"></div>
+                            <div style="font-size:11px; color:var(--text-muted);" th:text="${e.slug}"></div>
+                            <div th:if="${e.tags != null and !#strings.isEmpty(e.tags)}"
+                                 style="font-size:10px; color:var(--green-main); margin-top:2px;" th:text="${e.tags}"></div>
+                        </td>
+                        <td>
+                            <span th:switch="${e.type?.name()}">
+                                <span th:case="'COOKING_WORKSHOP'" class="badge badge-recipe">Taller</span>
+                                <span th:case="'RECIPE_CHALLENGE'" class="badge badge-warning" style="background:#FFF3E0;color:#E65100;border:1px solid #FFCC80;">Reto</span>
+                                <span th:case="'LIVE_COOKING'"     class="badge badge-reviewing">En directo</span>
+                                <span th:case="'TASTING'"          class="badge badge-user">Degustación</span>
+                                <span th:case="'MEETUP'"           class="badge badge-resolved">Quedada</span>
+                                <span th:case="'COMPETITION'"      class="badge badge-banned">Competición</span>
+                                <span th:case="'MASTERCLASS'"      class="badge" style="background:#EDE7F6;color:#4527A0;border:1px solid #B39DDB;">Masterclass</span>
+                                <span th:case="'SEASONAL'"         class="badge" style="background:#E8F5E9;color:#1B5E20;border:1px solid #A5D6A7;">Temporada</span>
+                                <span th:case="*" class="badge badge-dismissed" th:text="${e.type}"></span>
+                            </span>
+                        </td>
+                        <td>
+                            <span th:switch="${e.status?.name()}">
+                                <span th:case="'UPCOMING'"  class="badge badge-resolved"><span class="dot dot-resolved"></span> Próximo</span>
+                                <span th:case="'ACTIVE'"    class="badge badge-reviewing"><span class="dot dot-reviewing"></span> Activo</span>
+                                <span th:case="'DRAFT'"     class="badge badge-dismissed"><span class="dot dot-dismissed"></span> Borrador</span>
+                                <span th:case="'FINISHED'"  class="badge" style="background:#F5F5F5;color:#9E9E9E;border:1px solid #E0E0E0;">Finalizado</span>
+                                <span th:case="'CANCELLED'" class="badge badge-banned">Cancelado</span>
+                                <span th:case="*" class="badge" th:text="${e.status}"></span>
+                            </span>
+                        </td>
+                        <td style="font-size:12px; white-space:nowrap;"
+                            th:text="${e.startsAt != null} ? ${#temporals.format(e.startsAt,'dd/MM/yy HH:mm')} : '—'"></td>
+                        <td style="font-size:12px; white-space:nowrap; color:var(--text-muted);"
+                            th:text="${e.endsAt != null} ? ${#temporals.format(e.endsAt,'dd/MM/yy HH:mm')} : '—'"></td>
+                        <td style="text-align:center;">
+                            <span th:if="${e.maxParticipants != null}"
+                                  th:text="${e.participants.size() + ' / ' + e.maxParticipants}"
+                                  th:classappend="${e.participants.size() >= e.maxParticipants} ? 'badge badge-banned' : 'badge badge-resolved'"
+                                  class="badge"></span>
+                            <span th:unless="${e.maxParticipants != null}"
+                                  style="font-size:12px; color:var(--text-muted);">Sin límite</span>
+                        </td>
+                        <td>
+                            <span th:if="${e.online}"  class="badge badge-reviewing">Online</span>
+                            <span th:unless="${e.online}" class="badge badge-dismissed">Presencial</span>
+                        </td>
+                        <td>
+                            <span th:if="${e.premiumOnly}"  class="badge" style="background:#F3E5F5;color:#7B1FA2;border:1px solid #CE93D8;">Premium</span>
+                            <span th:unless="${e.premiumOnly}" class="text-muted" style="font-size:11px;">Público</span>
+                        </td>
+                        <td style="font-size:12px;" th:text="${e.organizer?.username}"></td>
+                        <td style="min-width:150px;">
+                            <div class="flex-row" style="gap:5px; flex-wrap:nowrap;">
+                                <a th:href="@{/adminControlPanel/events/{id}/edit(id=${e.id})}"
+                                   class="btn btn-secondary btn-sm">✏ Editar</a>
+                                <button class="btn btn-warning btn-sm"
+                                        onclick="openStatusModal(this)"
+                                        th:data-eventid="${e.id}"
+                                        th:data-eventtitle="${e.title}"
+                                        th:data-currentstatus="${e.status?.name()}">Estado</button>
+                                <form method="post"
+                                      th:action="@{/adminControlPanel/events/{id}/delete(id=${e.id})}"
+                                      onsubmit="return confirm('¿Eliminar el evento «' + this.dataset.title + '»? Esta acción no se puede deshacer.')"
+                                      th:data-title="${e.title}" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        <div th:if="${eventsPage != null}"
+             style="padding:14px 18px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:12px; color:var(--text-muted);">
+                Página <span th:text="${currentPage + 1}"></span>
+                de <span th:text="${eventsPage.totalPages}"></span>
+                · <span th:text="${eventsPage.totalElements}"></span> eventos
+            </span>
+            <div class="pagination">
+                <a th:href="@{/adminControlPanel/events(page=${currentPage - 1}, status=${filterStatus}, type=${filterType})}"
+                   th:classappend="${currentPage == 0} ? 'disabled'" class="page-btn">← Anterior</a>
+                <span th:each="i : ${#numbers.sequence(0, eventsPage.totalPages - 1)}"
+                      th:if="${eventsPage.totalPages <= 7}">
+                    <a th:href="@{/adminControlPanel/events(page=${i}, status=${filterStatus}, type=${filterType})}"
+                       class="page-btn" th:classappend="${i == currentPage} ? 'active'" th:text="${i + 1}"></a>
+                </span>
+                <a th:href="@{/adminControlPanel/events(page=${currentPage + 1}, status=${filterStatus}, type=${filterType})}"
+                   th:classappend="${eventsPage.last} ? 'disabled'" class="page-btn">Siguiente →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal cambiar estado -->
+    <div id="status-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:999; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:18px; padding:32px; width:100%; max-width:400px; margin:20px; box-shadow:0 20px 60px rgba(0,0,0,.2);">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <div style="width:40px; height:40px; border-radius:50%; background:var(--yellow-bg); display:flex; align-items:center; justify-content:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E65100" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                    <div style="font-weight:700; font-size:15px;">Cambiar estado del evento</div>
+                    <div style="font-size:12px; color:var(--text-muted);" id="status-event-name"></div>
+                </div>
+            </div>
+            <div class="divider"></div>
+            <form method="post" id="status-form">
+                <div class="form-group">
+                    <label class="form-label">Estado actual → Nuevo estado</label>
+                    <select name="status" id="status-select" class="form-control" required>
+                        <option value="DRAFT">DRAFT — Borrador (no visible)</option>
+                        <option value="UPCOMING">UPCOMING — Próximo (visible, inscripciones abiertas)</option>
+                        <option value="ACTIVE">ACTIVE — En curso</option>
+                        <option value="FINISHED">FINISHED — Finalizado</option>
+                        <option value="CANCELLED">CANCELLED — Cancelado</option>
+                    </select>
+                </div>
+                <div style="background:var(--green-pale); border:1px solid var(--green-border); border-radius:10px; padding:10px 14px; font-size:12px; color:var(--green-main); margin-bottom:16px;">
+                    <strong>UPCOMING</strong>: visible para usuarios, inscripciones abiertas.<br>
+                    <strong>ACTIVE</strong>: evento en curso.<br>
+                    <strong>DRAFT</strong>: solo visible para admins.
+                </div>
+                <div class="flex-row" style="justify-content:flex-end; gap:8px;">
+                    <button type="button" onclick="closeStatusModal()" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Confirmar cambio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openStatusModal(btn) {
+            const id      = btn.getAttribute('data-eventid');
+            const title   = btn.getAttribute('data-eventtitle');
+            const current = btn.getAttribute('data-currentstatus');
+            document.getElementById('status-event-name').textContent = title;
+            document.getElementById('status-form').action = '/adminControlPanel/events/' + id + '/status';
+            const sel = document.getElementById('status-select');
+            for (let opt of sel.options) opt.selected = (opt.value === current);
+            document.getElementById('status-modal').style.display = 'flex';
+        }
+        function closeStatusModal() {
+            document.getElementById('status-modal').style.display = 'none';
+        }
+        document.getElementById('status-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeStatusModal();
+        });
+    </script>
+</div>
+</body>
+</html>

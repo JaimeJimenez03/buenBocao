@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+
+<head>
+    <title>Recetas · Admin</title>
+</head>
+
+<body>
+    <div>
+        <div class="page-title">Recetas</div>
+        <div class="page-sub">Gestión de recetas de la plataforma. Las recetas archivadas por admin no pueden ser
+            republicadas por el usuario.</div>
+
+        <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+        <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+
+        <!-- Filtros -->
+        <div class="card">
+            <form method="get" th:action="@{/adminControlPanel/recipes}" class="flex-row"
+                style="flex-wrap:wrap; gap:10px;">
+                <input type="text" name="search" class="form-control" style="width:240px;"
+                    placeholder="Buscar por título..." th:value="${search}" />
+                <select name="status" class="form-control" style="width:auto;">
+                    <option value="">Todos los estados</option>
+                    <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}"
+                        th:selected="${s.name() == filterStatus}"></option>
+                </select>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a th:href="@{/adminControlPanel/recipes}" class="btn btn-secondary">Limpiar</a>
+            </form>
+        </div>
+
+        <!-- Tabla -->
+        <div class="card" style="padding:0; overflow:hidden;">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Título</th>
+                            <th>Autor</th>
+                            <th>Estado</th>
+
+                            <th>Dificultad</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${recipesPage == null or recipesPage.content.empty}">
+                            <td colspan="7" style="text-align:center; padding:28px; color:#9E9E9E;">No hay recetas con
+                                estos filtros.</td>
+                        </tr>
+                        <tr th:each="r : ${recipesPage?.content}">
+                            <td class="text-muted" th:text="${r.id}"></td>
+                            <td style="max-width:220px;">
+                                <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                                    th:text="${r.title}"></div>
+                                <div style="font-size:11px; color:var(--text-muted);" th:text="${r.slug}"></div>
+                            </td>
+                            <td th:text="${r.author?.username}"></td>
+                            <td>
+                                <span th:switch="${r.status != null ? r.status.name() : ''}">
+                                    <span th:case="'PUBLISHED'" class="badge badge-resolved">Publicada</span>
+                                    <span th:case="'DRAFT'" class="badge badge-dismissed">Borrador</span>
+                                    <span th:case="'ARCHIVED'" class="badge badge-pending">Archivada</span>
+                                    <span th:case="'LOCKED'" class="badge badge-banned">🔒 Bloqueada</span>
+                                    <span th:case="*" class="badge" th:text="${r.status}"></span>
+                                </span>
+                            </td>
+
+                            <td class="text-muted" style="font-size:12px;" th:text="${r.difficulty}"></td>
+                            <td class="text-muted" style="font-size:12px;"
+                                th:text="${r.createdAt != null} ? ${#temporals.format(r.createdAt, 'dd/MM/yy')} : '—'">
+                            </td>
+                            <td>
+                                <div class="flex-row" style="gap:6px; flex-wrap:nowrap;">
+                                    <!-- Archivar si está publicada o en borrador -->
+                                    <button
+                                        th:unless="${r.status != null and (r.status.name() == 'ARCHIVED' or r.status.name() == 'LOCKED')}"
+                                        class="btn btn-danger btn-sm" onclick="openArchiveModal(this)"
+                                        th:data-recipeid="${r.id}" th:data-recipetitle="${r.title}">
+                                        Bloquear
+                                    </button>
+                                    <!-- Desbloquear si está bloqueada por admin -->
+                                    <form th:if="${r.status?.name() == 'LOCKED'}" method="post"
+                                        th:action="@{/adminControlPanel/recipes/{id}/unlock(id=${r.id})}"
+                                        onsubmit="return confirm('¿Desbloquear y publicar esta receta?')"
+                                        style="display:inline;">
+                                        <button type="submit" class="btn btn-secondary btn-sm">Desbloquear</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Paginación -->
+            <div th:if="${recipesPage != null}"
+                style="padding:14px 18px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:12px; color:var(--text-muted);">
+                    Página <span th:text="${currentPage + 1}"></span> · <span
+                        th:text="${recipesPage.totalElements}"></span> recetas
+                </span>
+                <div class="pagination">
+                    <a th:href="@{/adminControlPanel/recipes(page=${currentPage - 1}, search=${search}, status=${filterStatus})}"
+                        th:classappend="${currentPage == 0} ? 'disabled'" class="page-btn">← Anterior</a>
+                    <a th:href="@{/adminControlPanel/recipes(page=${currentPage + 1}, search=${search}, status=${filterStatus})}"
+                        th:classappend="${recipesPage.last} ? 'disabled'" class="page-btn">Siguiente →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Bloquear -->
+        <div id="archive-modal"
+            style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999; align-items:center; justify-content:center;">
+            <div style="background:#fff; border-radius:16px; padding:28px; width:100%; max-width:440px; margin:20px;">
+                <h3 style="font-size:16px; margin-bottom:4px;">Bloquear receta por moderación</h3>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:4px;">
+                    Receta: <strong id="archive-title"></strong>
+                </p>
+                <p style="font-size:12px; color:var(--red-text); margin-bottom:18px;">
+                    ⚠ El usuario <strong>no podrá cambiar el estado</strong> de esta receta. Solo un administrador podrá
+                    desbloquearla.
+                </p>
+                <form method="post" id="archive-form">
+                    <div class="form-group">
+                        <label class="form-label">Motivo del bloqueo <span
+                                style="color:var(--red-text);">*</span></label>
+                        <textarea name="reason" class="form-control" rows="3"
+                            placeholder="Describe el motivo del bloqueo. Esta nota quedará registrada y se enviará al usuario..."
+                            required></textarea>
+                    </div>
+                    <div class="flex-row" style="justify-content:flex-end; gap:8px; margin-top:8px;">
+                        <button type="button" onclick="closeArchiveModal()" class="btn btn-secondary">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar bloqueo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script th:inline="javascript">
+            var ctx = /*[[@{/adminControlPanel/recipes}]]*/ '/adminControlPanel/recipes';
+            function openArchiveModal(btn) {
+                const id = btn.getAttribute('data-recipeid');
+                const title = btn.getAttribute('data-recipetitle');
+                document.getElementById('archive-title').textContent = title;
+                document.getElementById('archive-form').action = ctx + '/' + id + '/archive';
+                document.getElementById('archive-modal').style.display = 'flex';
+            }
+            function closeArchiveModal() {
+                document.getElementById('archive-modal').style.display = 'none';
+            }
+            document.getElementById('archive-modal').addEventListener('click', function (e) {
+                if (e.target === this) closeArchiveModal();
+            });
+        </script>
+    </div>
+</body>
+
+</html>

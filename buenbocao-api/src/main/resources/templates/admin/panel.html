@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buen Bocao · Panel Admin</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #F3EDE3;
+            color: #1A1A1A;
+        }
+
+        /* ── Navbar ── */
+        nav {
+            background: #1B5E20;
+            color: #fff;
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .nav-brand svg {
+            width: 24px;
+            height: 24px;
+            stroke: #fff;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+        }
+
+        .nav-right span {
+            color: #A5D6A7;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* ── Layout ── */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px 20px;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1A1A1A;
+            margin-bottom: 16px;
+        }
+
+        /* ── Stat cards ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 18px 20px;
+            border: 1px solid #E8E3DC;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6B6B6B;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #2E7D32;
+        }
+
+        .stat-icon {
+            float: right;
+            margin-top: -4px;
+        }
+
+        .stat-icon svg {
+            width: 22px;
+            height: 22px;
+            stroke: #A5D6A7;
+        }
+
+        /* ── Sections ── */
+        .section {
+            background: #fff;
+            border-radius: 14px;
+            padding: 22px;
+            border: 1px solid #E8E3DC;
+            margin-bottom: 20px;
+        }
+
+        .section h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            color: #2C2C2C;
+        }
+
+        /* ── API link list ── */
+        .api-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .api-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #F9F6F1;
+            border-radius: 10px;
+            border: 1px solid #EDE8E0;
+            font-size: 13px;
+        }
+
+        .api-list .method {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 7px;
+            border-radius: 5px;
+            margin-right: 10px;
+            text-transform: uppercase;
+        }
+
+        .get {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .post {
+            background: #E3F2FD;
+            color: #1565C0;
+        }
+
+        .patch {
+            background: #FFF8E1;
+            color: #F57F17;
+        }
+
+        .del {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .api-list a {
+            color: #2E7D32;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 12px;
+            border: 1px solid #C8E6C9;
+            padding: 4px 10px;
+            border-radius: 7px;
+        }
+
+        .api-list a:hover {
+            background: #E8F5E9;
+        }
+
+        /* ── Quick actions ── */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .action-btn {
+            background: #2E7D32;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            transition: background .2s;
+        }
+
+        .action-btn:hover {
+            background: #1B5E20;
+        }
+
+        .action-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: #fff;
+            flex-shrink: 0;
+        }
+
+        .action-btn.secondary {
+            background: #fff;
+            color: #2E7D32;
+            border: 1.5px solid #2E7D32;
+        }
+
+        .action-btn.secondary:hover {
+            background: #E8F5E9;
+        }
+
+        .action-btn.secondary svg {
+            stroke: #2E7D32;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #FFF3E0;
+            color: #E65100;
+            border-radius: 99px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                    d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
+                <line x1="6" y1="17" x2="18" y2="17" />
+                <line x1="6" y1="21" x2="18" y2="21" />
+            </svg>
+            Buen Bocao — Admin
+        </div>
+        <div class="nav-right">
+            <span th:text="'Hola, ' + ${adminUsername}"></span>
+            <form method="post" th:action="@{/adminControlPanel/logout}" style="margin:0;">
+                <button class="btn-logout" type="submit">Cerrar sesión</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Stats -->
+        <h2>Resumen</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                    </svg></div>
+                <div class="stat-label">Usuarios totales</div>
+                <div class="stat-value" id="stat-users">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path
+                            d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
+                    </svg></div>
+                <div class="stat-label">Recetas publicadas</div>
+                <div class="stat-value" id="stat-recipes">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                        <polyline points="16 6 12 2 8 6" />
+                        <line x1="12" y1="2" x2="12" y2="15" />
+                    </svg></div>
+                <div class="stat-label">Reportes pendientes</div>
+                <div class="stat-value" id="stat-reports">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                    </svg></div>
+                <div class="stat-label">Usuarios baneados</div>
+                <div class="stat-value" id="stat-banned">—</div>
+            </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="section">
+            <h3>Acciones rápidas</h3>
+            <div class="actions-grid">
+                <a class="action-btn" href="/api/v1/admin/reports/pending" target="_blank">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    Ver reportes pendientes
+                </a>
+                <a class="action-btn" href="/api/v1/admin/users/banned" target="_blank">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                    </svg>
+                    Usuarios baneados
+                </a>
+                <a class="action-btn secondary" href="api/v1/swagger-ui/index.html" target="_blank">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    Swagger UI
+                </a>
+                <a class="action-btn secondary" href="/api/v1/admin/reports/stats" target="_blank">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>
+                    Estadísticas completas
+                </a>
+            </div>
+        </div>
+
+        <!-- Admin API endpoints -->
+        <div class="section">
+            <h3>Endpoints de administración disponibles</h3>
+            <ul class="api-list">
+                <li><span><span class="method get">GET</span>/admin/reports/pending</span><a
+                        href="/admin/reports/pending" target="_blank">Abrir</a></li>
+                <li><span><span class="method get">GET</span>/admin/reports — todos los reportes</span><a
+                        href="/admin/reports" target="_blank">Abrir</a></li>
+                <li><span><span class="method get">GET</span>/admin/reports/stats</span><a href="/admin/reports/stats"
+                        target="_blank">Abrir</a></li>
+                <li><span><span class="method get">GET</span>/admin/users/banned</span><a href="/admin/users/banned"
+                        target="_blank">Abrir</a></li>
+                <li><span><span class="method post">POST</span>/admin/users/{userId}/ban — banear usuario</span><span
+                        class="badge">Requiere body</span></li>
+                <li><span><span class="method post">POST</span>/admin/users/{userId}/unban — desbanear</span><span
+                        class="badge">Requiere body</span></li>
+                <li><span><span class="method patch">PATCH</span>/admin/reports/{id} — resolver reporte</span><span
+                        class="badge">Requiere body</span></li>
+                <li><span><span class="method del">DELETE</span>/admin/reports/{id}/content — borrar
+                        contenido</span><span class="badge">Requiere body</span></li>
+            </ul>
+        </div>
+
+    </div>
+
+    <script>
+        // Carga automática de stats al entrar al panel
+        async function loadStats() {
+            try {
+                const r = await fetch('/admin/reports/stats');
+                if (r.ok) {
+                    const data = (await r.json()).data;
+                    if (data.totalReports !== undefined) document.getElementById('stat-reports').textContent = data.pendingReports ?? '—';
+                    if (data.bannedUsers !== undefined) document.getElementById('stat-banned').textContent = data.bannedUsers ?? '—';
+                }
+            } catch (e) { /* silencioso */ }
+        }
+        loadStats();
+    </script>
+</body>
+
+</html>

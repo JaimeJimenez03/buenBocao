@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+<head><title th:text="${editMode} ? 'Editar evento · Admin' : 'Nuevo evento · Admin'">Evento · Admin</title></head>
+<body>
+<div>
+
+    <!-- Cabecera -->
+    <div class="flex-row" style="margin-bottom:6px; justify-content:space-between;">
+        <div class="flex-row" style="gap:10px;">
+            <a th:href="@{/adminControlPanel/events}" class="btn btn-secondary btn-sm">← Volver</a>
+            <div>
+                <div class="page-title" style="margin:0;" th:text="${editMode} ? 'Editar evento' : 'Crear nuevo evento'"></div>
+                <div class="page-sub" style="margin:2px 0 0;" th:text="${editMode} ? 'Modifica los datos del evento y guarda los cambios.' : 'Completa todos los campos para publicar el evento en la plataforma.'"></div>
+            </div>
+        </div>
+        <!-- Badge estado actual si editamos -->
+        <div th:if="${editMode and event != null}">
+            <span th:switch="${event.status?.name()}">
+                <span th:case="'UPCOMING'"  class="badge badge-resolved" style="font-size:13px; padding:6px 14px;">Próximo</span>
+                <span th:case="'ACTIVE'"    class="badge badge-reviewing" style="font-size:13px; padding:6px 14px;">Activo</span>
+                <span th:case="'DRAFT'"     class="badge badge-dismissed" style="font-size:13px; padding:6px 14px;">Borrador</span>
+                <span th:case="'FINISHED'"  class="badge" style="font-size:13px; padding:6px 14px; background:#F5F5F5;color:#9E9E9E;border:1px solid #E0E0E0;">Finalizado</span>
+                <span th:case="'CANCELLED'" class="badge badge-banned" style="font-size:13px; padding:6px 14px;">Cancelado</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Flash -->
+    <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+
+    <form method="post"
+          th:action="${editMode} ? @{/adminControlPanel/events/{id}/edit(id=${event.id})} : @{/adminControlPanel/events/new}"
+          id="event-form">
+
+        <div style="display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start;">
+
+            <!-- Columna izquierda -->
+            <div>
+
+                <!-- Información básica -->
+                <div class="card">
+                    <div class="card-title">Información básica</div>
+
+                    <div class="form-group">
+                        <label class="form-label">Título del evento *</label>
+                        <input type="text" name="title" class="form-control"
+                               placeholder="ej: Taller de pasta fresca con Chef García"
+                               required maxlength="150"
+                               th:value="${editMode and event != null} ? ${event.title} : ''"/>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Máximo 150 caracteres. El slug se genera automáticamente.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Descripción *</label>
+                        <textarea name="description" class="form-control" rows="6"
+                                  placeholder="Describe el evento con detalle: qué se hará, qué aprenderán los participantes, qué necesitan traer..."
+                                  required
+                                  th:text="${editMode and event != null} ? ${event.description} : ''"></textarea>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                        <div class="form-group">
+                            <label class="form-label">Tipo de evento *</label>
+                            <select name="type" class="form-control" required>
+                                <option value="">Selecciona un tipo...</option>
+                                <option th:each="t : ${eventTypes}"
+                                        th:value="${t.name()}"
+                                        th:selected="${editMode and event != null and event.type != null and event.type.name() == t.name()}"
+                                        th:text="${t.name()}"></option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">URL imagen de portada</label>
+                            <input type="url" name="coverImage" class="form-control"
+                                   placeholder="https://..."
+                                   th:value="${editMode and event != null} ? ${event.coverImage} : ''"/>
+                        </div>
+                    </div>
+
+                    <!-- Preview imagen -->
+                    <div id="cover-preview" style="display:none; margin-top:8px;">
+                        <img id="cover-img" src="" alt="Preview"
+                             style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; border:1px solid var(--border);"/>
+                    </div>
+                </div>
+
+                <!-- Fechas y lugar -->
+                <div class="card">
+                    <div class="card-title">Fechas y lugar</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                        <div class="form-group">
+                            <label class="form-label">Fecha y hora de inicio *</label>
+                            <input type="datetime-local" name="startsAt" class="form-control" required
+                                   th:value="${editMode and event != null and event.startsAt != null}
+                                              ? ${#temporals.format(event.startsAt, 'yyyy-MM-dd') + 'T' + #temporals.format(event.startsAt, 'HH:mm')}
+                                              : ''"/>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Fecha y hora de fin</label>
+                            <input type="datetime-local" name="endsAt" class="form-control"
+                                   th:value="${editMode and event != null and event.endsAt != null}
+                                              ? ${#temporals.format(event.endsAt, 'yyyy-MM-dd') + 'T' + #temporals.format(event.endsAt, 'HH:mm')}
+                                              : ''"/>
+                        </div>
+                        <div class="form-group" style="grid-column:1/-1;">
+                            <label class="form-label">URL o dirección del evento</label>
+                            <input type="text" name="location" class="form-control" maxlength="300"
+                                   placeholder="https://meet.google.com/xxx-yyyy-zzz  ó  Calle Mayor 1, Madrid"
+                                   th:value="${editMode and event != null} ? ${event.location} : ''"/>
+                            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Para eventos online pon la URL de la sala. Para presenciales, la dirección física.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="card">
+                    <div class="card-title">Tags</div>
+                    <div class="form-group" style="margin:0;">
+                        <input type="text" name="tags" class="form-control" maxlength="300"
+                               placeholder="cocina italiana, pasta, principiantes, online..."
+                               th:value="${editMode and event != null} ? ${event.tags} : ''"/>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Separados por comas. Ayudan a los usuarios a encontrar el evento.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Columna derecha -->
+            <div>
+
+                <!-- Modalidad -->
+                <div class="card">
+                    <div class="card-title">Modalidad</div>
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+
+                        <label style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:12px; border:1px solid var(--border); border-radius:10px; transition:background .15s;"
+                               id="label-online">
+                            <input type="radio" name="online" value="true" id="radio-online"
+                                   th:checked="${!editMode or event == null or event.online}"
+                                   style="width:16px; height:16px; accent-color:var(--green-main);"
+                                   onchange="updateModalidad()"/>
+                            <div>
+                                <div style="font-weight:600; font-size:13px;">Online</div>
+                                <div style="font-size:11px; color:var(--text-muted);">El evento se realiza por videollamada o streaming.</div>
+                            </div>
+                        </label>
+
+                        <label style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:12px; border:1px solid var(--border); border-radius:10px; transition:background .15s;"
+                               id="label-presencial">
+                            <input type="radio" name="online" value="false" id="radio-presencial"
+                                   th:checked="${editMode and event != null and !event.online}"
+                                   style="width:16px; height:16px; accent-color:var(--green-main);"
+                                   onchange="updateModalidad()"/>
+                            <div>
+                                <div style="font-weight:600; font-size:13px;">Presencial</div>
+                                <div style="font-size:11px; color:var(--text-muted);">El evento se celebra en un lugar físico.</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Participantes -->
+                <div class="card">
+                    <div class="card-title">Participantes</div>
+
+                    <div class="form-group">
+                        <label class="form-label">Máximo de participantes</label>
+                        <input type="number" name="maxParticipants" class="form-control"
+                               placeholder="Vacío = sin límite" min="1" max="99999"
+                               th:value="${editMode and event != null and event.maxParticipants != null} ? ${event.maxParticipants} : ''"/>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Deja en blanco para no limitar el aforo.</div>
+                    </div>
+
+                    <!-- Info participantes actuales si editamos -->
+                    <div th:if="${editMode and event != null}"
+                         style="background:var(--green-pale); border:1px solid var(--green-border); border-radius:10px; padding:10px 14px; font-size:12px; color:var(--green-main);">
+                        Inscritos actualmente:
+                        <strong th:text="${event.participants?.size() ?: 0}">0</strong>
+                        <span th:if="${event.maxParticipants != null}">
+                            / <span th:text="${event.maxParticipants}"></span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Acceso -->
+                <div class="card">
+                    <div class="card-title">Acceso</div>
+                    <label style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:12px; border:1px solid var(--border); border-radius:10px;"
+                           id="label-premium">
+                        <input type="checkbox" name="premiumOnly" value="true" id="check-premium"
+                               th:checked="${editMode and event != null and event.premiumOnly}"
+                               style="width:16px; height:16px; accent-color:#7B1FA2;"
+                               onchange="updatePremium()"/>
+                        <div>
+                            <div style="font-weight:600; font-size:13px; color:#7B1FA2;">Solo Premium</div>
+                            <div style="font-size:11px; color:var(--text-muted);">Solo usuarios con suscripción activa pueden inscribirse.</div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Botones -->
+                <div class="card" style="background:var(--bg);">
+                    <button type="submit" class="btn btn-primary" style="width:100%; height:46px; font-size:15px; margin-bottom:10px;"
+                            th:text="${editMode} ? 'Guardar cambios' : 'Crear evento'">
+                    </button>
+                    <a th:href="@{/adminControlPanel/events}" class="btn btn-secondary" style="width:100%; height:40px; justify-content:center; display:flex; align-items:center;">
+                        Cancelar
+                    </a>
+
+                    <!-- Zona peligrosa en modo edición -->
+                    <div th:if="${editMode and event != null}" style="margin-top:16px;">
+                        <div class="divider"></div>
+                        <div style="font-size:11px; font-weight:700; color:#B0BEC5; text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px;">Zona peligrosa</div>
+                        <form method="post"
+                              th:action="@{/adminControlPanel/events/{id}/delete(id=${event.id})}"
+                              onsubmit="return confirm('¿Eliminar el evento «' + document.querySelector('[name=title]').value + '»? Esta acción no se puede deshacer.')">
+                            <button type="submit" class="btn btn-danger" style="width:100%;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                Eliminar evento
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </form>
+
+    <script>
+        // Preview imagen de portada
+        const coverInput = document.querySelector('[name="coverImage"]');
+        const preview    = document.getElementById('cover-preview');
+        const previewImg = document.getElementById('cover-img');
+
+        function updateCoverPreview() {
+            const url = coverInput.value.trim();
+            if (url) {
+                previewImg.src = url;
+                preview.style.display = 'block';
+                previewImg.onerror = () => { preview.style.display = 'none'; };
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+        coverInput.addEventListener('input', updateCoverPreview);
+        updateCoverPreview(); // al cargar si ya hay valor
+
+        // Estilo visual radios modalidad
+        function updateModalidad() {
+            const online = document.getElementById('radio-online').checked;
+            document.getElementById('label-online').style.background     = online ? 'var(--green-pale)' : '';
+            document.getElementById('label-online').style.borderColor    = online ? 'var(--green-main)' : 'var(--border)';
+            document.getElementById('label-presencial').style.background = !online ? 'var(--green-pale)' : '';
+            document.getElementById('label-presencial').style.borderColor= !online ? 'var(--green-main)' : 'var(--border)';
+        }
+        updateModalidad();
+
+        // Estilo visual checkbox premium
+        function updatePremium() {
+            const checked = document.getElementById('check-premium').checked;
+            document.getElementById('label-premium').style.background  = checked ? '#F3E5F5' : '';
+            document.getElementById('label-premium').style.borderColor = checked ? '#CE93D8' : 'var(--border)';
+        }
+        updatePremium();
+
+        // Validar que fecha fin > fecha inicio
+        document.getElementById('event-form').addEventListener('submit', function(e) {
+            const start = document.querySelector('[name="startsAt"]').value;
+            const end   = document.querySelector('[name="endsAt"]').value;
+            if (start && end && new Date(end) <= new Date(start)) {
+                e.preventDefault();
+                alert('La fecha de fin debe ser posterior a la fecha de inicio.');
+            }
+        });
+    </script>
+</div>
+</body>
+</html>

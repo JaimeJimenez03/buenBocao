@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cuenta suspendida</title>
+  <style>
+    body { margin: 0; padding: 0; background: #f4f4f4; font-family: 'Helvetica Neue', Arial, sans-serif; }
+    .wrapper { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .header { background: #B71C1C; padding: 40px 40px 32px; text-align: center; }
+    .header-icon { font-size: 48px; margin-bottom: 12px; }
+    .header h1 { color: #fff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+    .header p { color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px; }
+    .body { padding: 36px 40px; }
+    .greeting { font-size: 16px; color: #333; margin-bottom: 20px; }
+    .info-box { background: #FFF8E1; border-left: 4px solid #F9A825; border-radius: 8px; padding: 16px 20px; margin: 20px 0; }
+    .info-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #F9A825; font-weight: 700; margin-bottom: 6px; }
+    .info-box .value { font-size: 15px; color: #333; line-height: 1.5; }
+    .duration-box { background: #FFEBEE; border-left: 4px solid #E53935; border-radius: 8px; padding: 16px 20px; margin: 20px 0; }
+    .duration-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #E53935; font-weight: 700; margin-bottom: 6px; }
+    .duration-box .value { font-size: 22px; font-weight: 700; color: #B71C1C; }
+    .permanent-box { background: #FCE4EC; border-left: 4px solid #AD1457; border-radius: 8px; padding: 16px 20px; margin: 20px 0; }
+    .permanent-box .value { font-size: 16px; font-weight: 700; color: #AD1457; }
+    .appeal-section { background: #E8F5E9; border-radius: 12px; padding: 20px; margin: 24px 0; }
+    .appeal-section h3 { color: #2E7D32; margin: 0 0 10px; font-size: 15px; }
+    .appeal-section p { color: #555; font-size: 14px; line-height: 1.6; margin: 0; }
+    .footer { background: #f9f9f9; padding: 24px 40px; text-align: center; border-top: 1px solid #eee; }
+    .footer p { color: #999; font-size: 12px; line-height: 1.6; margin: 0; }
+    .brand { color: #2E7D32; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="header-icon">🚫</div>
+      <h1>Cuenta suspendida</h1>
+      <p>Buen Bocao — Aviso de moderación</p>
+    </div>
+
+    <div class="body">
+      <p class="greeting">Hola, <strong th:text="${username}">usuario</strong>.</p>
+
+      <p style="color:#555; font-size:15px; line-height:1.7;">
+        Tras revisar la actividad en tu cuenta, nuestro equipo de moderación ha tomado la decisión de
+        <strong>suspender temporalmente tu acceso a Buen Bocao</strong>.
+      </p>
+
+      <div class="info-box">
+        <div class="label">Motivo de la suspensión</div>
+        <div class="value" th:text="${reason}">Violación de las normas de la comunidad</div>
+      </div>
+
+      <div th:if="${!permanent}" class="duration-box">
+        <div class="label">Duración de la suspensión</div>
+        <div class="value"><span th:text="${durationDays}">7</span> días</div>
+      </div>
+
+      <div th:if="${permanent}" class="permanent-box">
+        <div class="label">Duración</div>
+        <div class="value">Suspensión permanente</div>
+      </div>
+
+      <p style="color:#555; font-size:14px; line-height:1.7;">
+        Durante este período <strong>no podrás acceder a tu cuenta</strong>.
+        <span th:if="${!permanent}">Tu cuenta se reactivará automáticamente una vez transcurrido el período indicado.</span>
+        <span th:if="${permanent}">Si crees que se ha cometido un error, puedes contactarnos para apelar esta decisión.</span>
+      </p>
+
+      <div class="appeal-section">
+        <h3>¿Crees que es un error?</h3>
+        <p>
+          Si consideras que esta suspensión ha sido aplicada por error, puedes enviarnos un mensaje
+          a <strong>soporte@buenbocao.com</strong> explicando tu caso. Revisaremos tu apelación
+          en un plazo de 48 horas.
+        </p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>
+        Este mensaje ha sido enviado automáticamente por el equipo de <span class="brand">Buen Bocao</span>.<br/>
+        Por favor, no respondas a este correo directamente.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

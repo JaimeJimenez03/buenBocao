@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+
+<head>
+    <title>Usuarios · Admin</title>
+</head>
+
+<body>
+    <div>
+        <div class="page-title" th:text="${isBannedFilter} ? 'Usuarios baneados' : 'Usuarios'">Usuarios</div>
+        <div class="page-sub"
+            th:text="${isBannedFilter} ? 'Cuentas suspendidas de la plataforma' : 'Todos los usuarios registrados'">
+        </div>
+
+        <!-- Flash messages -->
+        <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+        <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+
+        <!-- Búsqueda y filtros -->
+        <div class="card">
+            <div class="flex-row" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <form method="get" th:action="@{/adminControlPanel/users}" class="flex-row" style="gap:8px;">
+                    <input type="text" name="search" class="form-control" style="width:240px;"
+                        placeholder="Buscar por usuario o nombre..." th:value="${search}" />
+                    <button type="submit" class="btn btn-primary">Buscar</button>
+                    <a th:href="@{/adminControlPanel/users}" class="btn btn-secondary">Limpiar</a>
+                </form>
+                <div class="flex-row" style="gap:8px;">
+                    <a th:href="@{/adminControlPanel/users}" class="btn btn-secondary"
+                        th:classappend="${filter == null} ? 'btn-primary'">Todos</a>
+                    <a th:href="@{/adminControlPanel/users(filter='banned')}" class="btn btn-secondary"
+                        th:classappend="${filter == 'banned'} ? 'btn-danger'">Baneados</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla - vista baneados -->
+        <div class="card" th:if="${isBannedFilter}" style="padding:0; overflow:hidden;">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Motivo del ban</th>
+                            <th>Expira</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${users.empty}">
+                            <td colspan="4" style="text-align:center; padding:28px; color:#9E9E9E;">No hay usuarios
+                                baneados actualmente.</td>
+                        </tr>
+                        <tr th:each="u : ${users}">
+                            <td>
+                                <div style="font-weight:600;" th:text="${u.username}"></div>
+                                <div style="font-size:11px; color:var(--text-muted);" th:text="${u.email}"></div>
+                            </td>
+                            <td style="font-size:12px; color:var(--text-muted); max-width:240px;"
+                                th:text="${u.banReason ?: '—'}"></td>
+                            <td style="font-size:12px;">
+                                <span th:if="${u.banExpiresAt != null}"
+                                    th:text="${#temporals.format(u.banExpiresAt, 'dd/MM/yyyy')}"></span>
+                                <span th:if="${u.banExpiresAt == null}" class="badge badge-banned">Permanente</span>
+                            </td>
+                            <td>
+                                <form method="post" th:action="@{/adminControlPanel/users/{id}/unban(id=${u.id})}"
+                                    onsubmit="return confirm('¿Desbanear a ' + /*[[${u.username}]]*/ '' + '?')"
+                                    style="display:inline;">
+                                    <button type="submit" class="btn btn-secondary btn-sm">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
+                                            style="width:13px;height:13px;">
+                                            <path d="M9 12l2 2 4-4" />
+                                            <circle cx="12" cy="12" r="10" />
+                                        </svg>
+                                        Desbanear
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabla - todos los usuarios -->
+        <div class="card" th:if="${!isBannedFilter}" style="padding:0; overflow:hidden;">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Usuario</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${usersPage != null and usersPage.content.empty}">
+                            <td colspan="8" style="text-align:center; padding:28px; color:#9E9E9E;">No se encontraron
+                                usuarios.</td>
+                        </tr>
+                        <tr th:each="u : ${usersPage?.content}">
+                            <td class="text-muted" th:text="${u.id}"></td>
+                            <td style="font-weight:600;" th:text="${u.username}"></td>
+                            <td th:text="${u.firstName + ' ' + u.lastName}"></td>
+                            <td style="font-size:12px; color:var(--text-muted);" th:text="${u.email}"></td>
+                            <td>
+                                <span th:if="${u.role.name() == 'ADMIN'}" class="badge badge-resolved">Admin</span>
+                                <span th:if="${u.role.name() == 'USER'}" class="badge badge-dismissed">User</span>
+                            </td>
+                            <td>
+                                <span th:if="${u.enabled}" class="badge badge-active">Activo</span>
+                                <span th:if="${!u.enabled}" class="badge badge-banned">Baneado</span>
+                            </td>
+                            <td style="font-size:12px; color:var(--text-muted);"
+                                th:text="${u.createdAt != null} ? ${#temporals.format(u.createdAt, 'dd/MM/yyyy')} : '—'">
+                            </td>
+                            <td>
+                                <!-- Desbanear si está baneado -->
+                                <form th:if="${!u.enabled}" method="post"
+                                    th:action="@{/adminControlPanel/users/{id}/unban(id=${u.id})}"
+                                    onsubmit="return confirm('¿Desbanear a este usuario?')" style="display:inline;">
+                                    <button type="submit" class="btn btn-secondary btn-sm">Desbanear</button>
+                                </form>
+                                <!-- Banear si está activo y no es admin -->
+                                <button th:if="${u.enabled and u.role.name() != 'ADMIN'}" class="btn btn-danger btn-sm"
+                                    onclick="openBanModal(this)" th:data-userid="${u.id}"
+                                    th:data-username="${u.username}">
+                                    Banear
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            <div th:if="${usersPage != null}"
+                style="padding:14px 18px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:12px; color:var(--text-muted);">
+                    Página <span th:text="${currentPage + 1}"></span> · <span
+                        th:text="${usersPage.totalElements}"></span> usuarios
+                </span>
+                <div class="pagination">
+                    <a th:href="@{/adminControlPanel/users(page=${currentPage - 1}, search=${search})}"
+                        th:classappend="${currentPage == 0} ? 'disabled'" class="page-btn">← Anterior</a>
+                    <a th:href="@{/adminControlPanel/users(page=${currentPage + 1}, search=${search})}"
+                        th:classappend="${usersPage.last} ? 'disabled'" class="page-btn">Siguiente →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Banear -->
+        <div id="ban-modal"
+            style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999; align-items:center; justify-content:center;">
+            <div style="background:#fff; border-radius:16px; padding:28px; width:100%; max-width:420px; margin:20px;">
+                <h3 style="font-size:16px; margin-bottom:4px;">Banear usuario</h3>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:18px;">Suspender la cuenta de <strong
+                        id="ban-username"></strong></p>
+                <form method="post" id="ban-form">
+                    <div class="form-group">
+                        <label class="form-label">Motivo</label>
+                        <input type="text" name="banReason" class="form-control"
+                            placeholder="Violación de las normas..." />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Duración en días (vacío = permanente)</label>
+                        <input type="number" name="durationDays" class="form-control" placeholder="ej: 7" min="1" />
+                    </div>
+                    <div class="flex-row" style="justify-content:flex-end; gap:8px; margin-top:8px;">
+                        <button type="button" onclick="closeBanModal()" class="btn btn-secondary">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar ban</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function openBanModal(btn) {
+                const userId = btn.getAttribute('data-userid');
+                const username = btn.getAttribute('data-username');
+                document.getElementById('ban-username').textContent = username;
+                document.getElementById('ban-form').action = '/adminControlPanel/users/' + userId + '/ban';
+                const modal = document.getElementById('ban-modal');
+                modal.style.display = 'flex';
+            }
+            function closeBanModal() {
+                document.getElementById('ban-modal').style.display = 'none';
+            }
+            document.getElementById('ban-modal').addEventListener('click', function (e) {
+                if (e.target === this) closeBanModal();
+            });
+        </script>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+
+<head>
+    <title>Suscripciones · Admin</title>
+</head>
+
+<body>
+    <div>
+        <div class="page-title">Suscripciones</div>
+        <div class="page-sub">Historial de suscripciones premium de los usuarios.</div>
+
+        <!-- Stats -->
+        <div class="stats-grid" style="margin-bottom:20px;">
+            <div class="stat-card">
+                <div class="stat-label">Activas</div>
+                <div class="stat-value" style="color:#7B1FA2" th:text="${activeCount}">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Expiradas</div>
+                <div class="stat-value" style="color:#757575" th:text="${expiredCount}">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Canceladas</div>
+                <div class="stat-value red" th:text="${cancelledCount}">—</div>
+            </div>
+        </div>
+
+        <!-- Filtro -->
+        <div class="card">
+            <form method="get" th:action="@{/adminControlPanel/subscriptions}" class="flex-row" style="gap:10px;">
+                <select name="status" class="form-control" style="width:auto;">
+                    <option value="">Todos los estados</option>
+                    <option th:each="s : ${subStatuses}" th:value="${s}" th:text="${s}"
+                        th:selected="${s.name() == filterStatus}"></option>
+                </select>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a th:href="@{/adminControlPanel/subscriptions}" class="btn btn-secondary">Limpiar</a>
+            </form>
+        </div>
+
+        <!-- Tabla -->
+        <div class="card" style="padding:0; overflow:hidden;">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Usuario</th>
+                            <th>Plan</th>
+                            <th>Estado</th>
+                            <th>Precio</th>
+                            <th>Inicio</th>
+                            <th>Expira</th>
+                            <th>Auto-renovar</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${subsPage == null or subsPage.content.empty}">
+                            <td colspan="9" style="text-align:center; padding:28px; color:#9E9E9E;">No hay suscripciones
+                                con estos filtros.</td>
+                        </tr>
+                        <tr th:each="s : ${subsPage?.content}">
+                            <td class="text-muted" th:text="${s.id}"></td>
+                            <td>
+                                <div style="font-weight:600;" th:text="${s.user?.username}"></div>
+                                <div style="font-size:11px;color:var(--text-muted);" th:text="${s.user?.email}"></div>
+                            </td>
+                            <td>
+                                <span th:switch="${s.plan?.name()}">
+                                    <span th:case="'PREMIUM_MONTHLY'" class="badge"
+                                        style="background:#F3E5F5;color:#7B1FA2;border:1px solid #CE93D8;">Mensual</span>
+                                    <span th:case="'PREMIUM_ANNUAL'" class="badge"
+                                        style="background:#EDE7F6;color:#4527A0;border:1px solid #B39DDB;">Anual</span>
+                                    <span th:case="*" class="badge badge-dismissed" th:text="${s.plan}"></span>
+                                </span>
+                            </td>
+                            <td>
+                                <span th:switch="${s.status?.name()}">
+                                    <span th:case="'ACTIVE'" class="badge badge-resolved"><span class="dot dot-resolved"></span> Activa</span>
+                                    <span th:case="'EXPIRED'" class="badge badge-dismissed">Expirada</span>
+                                    <span th:case="'CANCELLED'" class="badge badge-banned">Cancelada</span>
+                                    <span th:case="'PENDING_PAYMENT'" class="badge badge-pending">Pago pendiente</span>
+                                </span>
+                            </td>
+                            <td style="font-weight:600;" th:text="${s.price != null} ? ${'€' + s.price} : '—'"></td>
+                            <td class="text-muted" style="font-size:12px;"
+                                th:text="${s.startsAt != null} ? ${#temporals.format(s.startsAt,'dd/MM/yyyy')} : '—'">
+                            </td>
+                            <td class="text-muted" style="font-size:12px;"
+                                th:text="${s.expiresAt != null} ? ${#temporals.format(s.expiresAt,'dd/MM/yyyy')} : '—'">
+                            </td>
+                            <td>
+                                <span th:if="${s.autoRenew}" class="badge badge-resolved">Sí</span>
+                                <span th:if="${!s.autoRenew}" class="badge badge-dismissed">No</span>
+                            </td>
+                            <td>
+                                <a th:href="@{/adminControlPanel/subscriptions/{id}(id=${s.id})}"
+                                    class="btn btn-secondary btn-sm">Ver detalle</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div th:if="${subsPage != null}"
+                style="padding:14px 18px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:12px; color:var(--text-muted);">
+                    Página <span th:text="${currentPage + 1}"></span> · <span
+                        th:text="${subsPage.totalElements}"></span> suscripciones
+                </span>
+                <div class="pagination">
+                    <a th:href="@{/adminControlPanel/subscriptions(page=${currentPage - 1}, status=${filterStatus})}"
+                        th:classappend="${currentPage == 0} ? 'disabled'" class="page-btn">← Anterior</a>
+                    <a th:href="@{/adminControlPanel/subscriptions(page=${currentPage + 1}, status=${filterStatus})}"
+                        th:classappend="${subsPage.last} ? 'disabled'" class="page-btn">Siguiente →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

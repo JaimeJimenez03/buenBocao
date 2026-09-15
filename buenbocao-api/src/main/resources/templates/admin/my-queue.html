@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+
+<head>
+    <title>Mi cola · Admin</title>
+</head>
+
+<body>
+    <div>
+        <div class="flex-row" style="margin-bottom:6px; justify-content:space-between;">
+            <div>
+                <div class="page-title" style="margin:0;">📋 Mi cola de revisión</div>
+            </div>
+            <a th:href="@{/adminControlPanel/reports(status='PENDING')}" class="btn btn-warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
+                    style="width:14px;height:14px;stroke:currentColor;">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                Ver pendientes
+            </a>
+        </div>
+        <div class="page-sub" style="margin-bottom:20px;">
+            Reportes que tú has marcado como <span class="badge badge-reviewing"><span class="dot dot-reviewing"></span>
+                En revisión</span>.
+            Solo aparecen los que tienes en curso, pendientes de resolución.
+        </div>
+
+        <!-- Flash messages -->
+        <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+        <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+
+        <!-- Stats rápidas de tu cola -->
+        <div class="stats-grid" style="margin-bottom:20px;">
+            <div class="stat-card">
+                <div class="stat-label">En tu cola ahora</div>
+                <div class="stat-value" style="color:#1565C0;" th:text="${myQueue != null} ? ${myQueue.size()} : 0">0
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Reportes de recetas</div>
+                <div class="stat-value" th:text="${myQueueCountRecipes ?: 0}">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Reportes de usuarios</div>
+                <div class="stat-value" th:text="${myQueueCountUsers ?: 0}">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Reportes de reseñas</div>
+                <div class="stat-value" th:text="${myQueueCountReviews ?: 0}">0</div>
+            </div>
+        </div>
+
+        <!-- Cola vacía -->
+        <div th:if="${myQueue == null or myQueue.empty}" class="card" style="text-align:center; padding:48px 20px;">
+            <div
+                style="width:56px; height:56px; background:#E8F5E9; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="2" style="width:26px;height:26px;">
+                    <path d="M9 12l2 2 4-4" />
+                    <circle cx="12" cy="12" r="10" />
+                </svg>
+            </div>
+            <div style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:6px;">Cola vacía</div>
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">
+                No tienes reportes en revisión actualmente. Puedes tomar reportes pendientes para empezar.
+            </div>
+            <a th:href="@{/adminControlPanel/reports(status='PENDING')}" class="btn btn-primary">
+                Ver reportes pendientes
+            </a>
+        </div>
+
+        <!-- Tabla de cola -->
+        <div th:if="${myQueue != null and !myQueue.empty}" class="card" style="padding:0; overflow:hidden;">
+            <div
+                style="padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:13px; font-weight:600; color:var(--text);">
+                    <span th:text="${myQueue.size()}"></span> reportes en revisión
+                </span>
+                <span style="font-size:12px; color:var(--text-muted);">
+                    Tomados por <strong th:text="'@' + ${adminUsername}"></strong>
+                </span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Tipo</th>
+                            <th>Contenido</th>
+                            <th>Motivo(s)</th>
+                            <th>Reportado por</th>
+                            <th>Fecha reporte</th>
+                            <th>Tiempo en revisión</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="r : ${myQueue}"
+                            th:classappend="${r.updatedAt != null and #temporals.createNow().minusHours(24).isBefore(r.updatedAt)} ? '' : 'row-stale'">
+                            <td style="font-weight:600;"><a th:href="@{/adminControlPanel/reports/{id}(id=${r.id})}"
+                                    style="color:var(--text); text-decoration:none;">#<span
+                                        th:text="${r.id}"></span></a></td>
+                            <td>
+                                <span th:switch="${r.targetType}">
+                                    <span th:case="'USER'" class="badge badge-user">Usuario</span>
+                                    <span th:case="'RECIPE'" class="badge badge-recipe">Receta</span>
+                                    <span th:case="'REVIEW'" class="badge badge-review">Reseña</span>
+                                    <span th:case="*" class="badge" th:text="${r.targetType}"></span>
+                                </span>
+                            </td>
+                            <td style="max-width:200px;">
+                                <a th:href="@{/adminControlPanel/reports/{id}(id=${r.id})}"
+                                    style="text-decoration:none; color:inherit;">
+                                    <div style="font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--green-main);"
+                                        th:text="${r.targetName ?: ('ID ' + r.targetId)}"></div>
+                                    <div th:if="${r.targetAuthorUsername != null}"
+                                        style="font-size:11px; color:var(--text-muted);"
+                                        th:text="'por ' + ${r.targetAuthorUsername}"></div>
+                                </a>
+                            </td>
+                            <td style="font-size:12px; max-width:180px;">
+                                <span th:each="reason,iter : ${r.reasons}" th:text="${reason + (iter.last ? '' : ', ')}"
+                                    class="text-muted"></span>
+                            </td>
+                            <td style="font-size:13px; font-weight:500;" th:text="${r.reporterUsername}"></td>
+                            <td class="text-muted" style="font-size:12px;"
+                                th:text="${r.createdAt != null} ? ${#temporals.format(r.createdAt,'dd/MM/yy HH:mm')} : '—'">
+                            </td>
+                            <td style="font-size:12px;">
+                                <!-- Días desde que se marcó en revisión (updatedAt) -->
+                                <span th:if="${r.updatedAt != null}"
+                                    th:with="dias=${#temporals.createNow().toLocalDate().toEpochDay() - r.updatedAt.toLocalDate().toEpochDay()}">
+                                    <span th:if="${dias == 0}" class="badge badge-reviewing">Hoy</span>
+                                    <span th:if="${dias == 1}" class="badge badge-pending">1 día</span>
+                                    <span th:if="${dias > 1 and dias <= 3}" class="badge badge-pending"
+                                        th:text="${dias} + ' días'"></span>
+                                    <span th:if="${dias > 3}" class="badge badge-banned"
+                                        th:text="${dias} + ' días ⚠'"></span>
+                                </span>
+                                <span th:if="${r.updatedAt == null}" class="text-muted">—</span>
+                            </td>
+                            <td>
+                                <div class="flex-row" style="gap:6px; flex-wrap:nowrap;">
+                                    <a th:href="@{/adminControlPanel/reports/{id}(id=${r.id})}"
+                                        class="btn btn-primary btn-sm">Resolver</a>
+                                    <!-- Resolver rápido: desestimar -->
+                                    <form method="post"
+                                        th:action="@{/adminControlPanel/reports/{id}/resolve(id=${r.id})}"
+                                        onsubmit="return confirm('¿Desestimar este reporte?')" style="display:inline;">
+                                        <input type="hidden" name="status" value="DISMISSED" />
+                                        <input type="hidden" name="notes"
+                                            value="Desestimado desde la cola de revisión." />
+                                        <button type="submit" class="btn btn-secondary btn-sm">Desestimar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div
+                style="padding:12px 18px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:10px;">
+                <span
+                    style="display:inline-block; width:10px; height:10px; background:#FFF8E1; border:1px solid #FFE082; border-radius:2px;"></span>
+                Reportes marcados en amarillo llevan más de 3 días en tu cola sin resolverse.
+            </div>
+        </div>
+
+        <!-- Consejo / ayuda -->
+        <div class="card" style="background:var(--blue-bg); border-color:#90CAF9;">
+            <div style="display:flex; gap:12px; align-items:flex-start;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2"
+                    style="width:18px;height:18px;flex-shrink:0;margin-top:1px;">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <div>
+                    <div style="font-size:13px; font-weight:700; color:#1565C0; margin-bottom:4px;">¿Cómo funciona la
+                        cola?</div>
+                    <div style="font-size:12px; color:#1565C0; line-height:1.6;">
+                        Cuando marcas un reporte como <strong>"En revisión"</strong> desde su página de detalle, queda
+                        asignado a ti y aparece aquí.
+                        Esto evita que dos administradores trabajen el mismo reporte a la vez.
+                        Resuélvelo o deséstimalo cuando termines tu análisis.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <style>
+        tr.row-stale td {
+            background: #FFFDE7;
+        }
+
+        .badge-user {
+            background: #E3F2FD;
+            color: #1565C0;
+            border: 1px solid #90CAF9;
+        }
+
+        .badge-recipe {
+            background: #FFF3E0;
+            color: #E65100;
+            border: 1px solid #FFCC80;
+        }
+
+        .badge-review {
+            background: #F3E5F5;
+            color: #7B1FA2;
+            border: 1px solid #CE93D8;
+        }
+
+        .badge-active {
+            background: var(--green-pale);
+            color: var(--green-main);
+            border: 1px solid var(--green-border);
+        }
+    </style>
+</body>
+
+</html>

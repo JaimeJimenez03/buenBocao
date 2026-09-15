@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+
+<head>
+    <title>Detalle Suscripción · Admin</title>
+</head>
+
+<body>
+    <div>
+        <!-- Header -->
+        <div class="flex-row" style="margin-bottom:6px;">
+            <a th:href="@{/adminControlPanel/subscriptions}" class="btn btn-secondary btn-sm">← Volver</a>
+            <div class="page-title" style="margin:0;">Detalle de suscripción
+                <span style="font-size:14px;font-weight:400;color:var(--text-muted);" th:text="'#' + ${sub.id}"></span>
+            </div>
+        </div>
+        <div class="page-sub">Información completa de la suscripción y del usuario asociado.</div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+
+            <!-- Columna izquierda -->
+            <div>
+                <!-- Info suscripción -->
+                <div class="card" style="margin-bottom:20px;">
+                    <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" width="16" height="16">
+                            <rect x="1" y="4" width="22" height="16" rx="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                        Suscripción
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Plan</span>
+                        <span th:switch="${sub.plan?.name()}">
+                            <span th:case="'PREMIUM_MONTHLY'" class="badge" style="background:#F3E5F5;color:#7B1FA2;border:1px solid #CE93D8;">Premium Mensual</span>
+                            <span th:case="'PREMIUM_ANNUAL'" class="badge" style="background:#EDE7F6;color:#4527A0;border:1px solid #B39DDB;">Premium Anual</span>
+                            <span th:case="*" class="badge badge-dismissed" th:text="${sub.plan}"></span>
+                        </span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Estado</span>
+                        <span th:switch="${sub.status?.name()}">
+                            <span th:case="'ACTIVE'" class="badge badge-resolved"><span class="dot dot-resolved"></span> Activa</span>
+                            <span th:case="'EXPIRED'" class="badge badge-dismissed">Expirada</span>
+                            <span th:case="'CANCELLED'" class="badge badge-banned">Cancelada</span>
+                            <span th:case="'PENDING_PAYMENT'" class="badge badge-pending">Pago pendiente</span>
+                        </span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Precio</span>
+                        <span style="font-weight:700;" th:text="${sub.price != null} ? ${'€' + sub.price} : '—'"></span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Renovación automática</span>
+                        <span th:if="${sub.autoRenew}" class="badge badge-resolved">Activada</span>
+                        <span th:if="${!sub.autoRenew}" class="badge badge-dismissed">Desactivada</span>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Inicio</span>
+                        <span th:text="${sub.startsAt != null} ? ${#temporals.format(sub.startsAt,'dd/MM/yyyy HH:mm')} : '—'"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Expira / Expiró</span>
+                        <span th:text="${sub.expiresAt != null} ? ${#temporals.format(sub.expiresAt,'dd/MM/yyyy HH:mm')} : '—'"
+                              th:style="${sub.status?.name() == 'EXPIRED'} ? 'color:#C62828;font-weight:600;' : ''"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Creada</span>
+                        <span th:text="${sub.createdAt != null} ? ${#temporals.format(sub.createdAt,'dd/MM/yyyy HH:mm')} : '—'"></span>
+                    </div>
+                </div>
+
+                <!-- Stripe -->
+                <div class="card" style="margin-bottom:20px;">
+                    <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" width="16" height="16">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                        </svg>
+                        Stripe
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Customer ID</span>
+                        <code th:text="${sub.stripeCustomerId ?: '—'}"
+                              style="font-size:11px;background:#F5F5F5;padding:2px 6px;border-radius:5px;word-break:break-all;"></code>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Subscription ID</span>
+                        <code th:text="${sub.stripeSubscriptionId ?: '—'}"
+                              style="font-size:11px;background:#F5F5F5;padding:2px 6px;border-radius:5px;word-break:break-all;"></code>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Payment ID</span>
+                        <code th:text="${sub.paymentId ?: '—'}"
+                              style="font-size:11px;background:#F5F5F5;padding:2px 6px;border-radius:5px;word-break:break-all;"></code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna derecha -->
+            <div>
+                <!-- Info usuario -->
+                <div class="card" style="margin-bottom:20px;">
+                    <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" width="16" height="16">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Usuario
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Username</span>
+                        <a th:href="@{/adminControlPanel/users}" style="font-weight:700;color:var(--green-main);text-decoration:none;"
+                           th:text="${'@' + sub.user?.username}"></a>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Nombre</span>
+                        <span th:text="${(sub.user?.firstName ?: '') + ' ' + (sub.user?.lastName ?: '')}"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Email</span>
+                        <span th:text="${sub.user?.email ?: '—'}" style="font-size:12px;"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Estado cuenta</span>
+                        <span th:if="${sub.user?.enabled}" class="badge badge-resolved">Activa</span>
+                        <span th:if="${!sub.user?.enabled}" class="badge badge-banned">Baneada</span>
+                    </div>
+                </div>
+
+                <!-- Historial de suscripciones del usuario -->
+                <div class="card" style="padding:0;overflow:hidden;">
+                    <div style="padding:16px 18px 12px; font-size:14px; font-weight:600; border-bottom:1px solid var(--border);">
+                        Historial del usuario
+                        <span style="font-size:12px;color:var(--text-muted);font-weight:400;" th:text="'(' + ${#lists.size(userHistory)} + ' registros)'"></span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Plan</th>
+                                    <th>Estado</th>
+                                    <th>Precio</th>
+                                    <th>Expira</th>
+                                    <th>Renovar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:if="${#lists.isEmpty(userHistory)}">
+                                    <td colspan="6" style="text-align:center;padding:20px;color:#9E9E9E;">Sin historial.</td>
+                                </tr>
+                                <tr th:each="h : ${userHistory}"
+                                    th:style="${h.id == sub.id} ? 'background:#F0FFF4;' : ''">
+                                    <td class="text-muted" style="font-size:11px;" th:text="${h.id}">
+                                        <span th:if="${h.id == sub.id}" style="font-weight:700;color:var(--green-main);"> ←</span>
+                                    </td>
+                                    <td style="font-size:12px;">
+                                        <span th:text="${h.plan?.name() == 'PREMIUM_MONTHLY' ? 'Mensual' : h.plan?.name() == 'PREMIUM_ANNUAL' ? 'Anual' : h.plan}"></span>
+                                    </td>
+                                    <td>
+                                        <span th:switch="${h.status?.name()}">
+                                            <span th:case="'ACTIVE'" class="badge badge-resolved" style="font-size:10px;padding:2px 7px;">Activa</span>
+                                            <span th:case="'EXPIRED'" class="badge badge-dismissed" style="font-size:10px;padding:2px 7px;">Expirada</span>
+                                            <span th:case="'CANCELLED'" class="badge badge-banned" style="font-size:10px;padding:2px 7px;">Cancelada</span>
+                                            <span th:case="'PENDING_PAYMENT'" class="badge badge-pending" style="font-size:10px;padding:2px 7px;">Pendiente</span>
+                                        </span>
+                                    </td>
+                                    <td style="font-size:12px;" th:text="${h.price != null} ? ${'€' + h.price} : '—'"></td>
+                                    <td style="font-size:11px;color:var(--text-muted);"
+                                        th:text="${h.expiresAt != null} ? ${#temporals.format(h.expiresAt,'dd/MM/yy')} : '—'"></td>
+                                    <td>
+                                        <span th:if="${h.autoRenew}" style="color:var(--green-main);font-size:12px;">✓</span>
+                                        <span th:if="${!h.autoRenew}" style="color:#9E9E9E;font-size:12px;">✗</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .detail-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            flex-shrink: 0;
+            min-width: 130px;
+        }
+        @media (max-width: 900px) {
+            div[style*="grid-template-columns:1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+</body>
+
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+
+<head>
+    <title>Reportes · Admin</title>
+</head>
+
+<body>
+    <div>
+        <div class="page-title">Reportes</div>
+        <div class="page-sub">Gestión de contenido reportado por la comunidad</div>
+
+        <!-- Filtros -->
+        <div class="card">
+            <form method="get" th:action="@{/adminControlPanel/reports}" class="flex-row"
+                style="flex-wrap:wrap; gap:10px;">
+                <select name="status" class="form-control" style="width:auto;">
+                    <option value="">Todos los estados</option>
+                    <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}"
+                        th:selected="${s.name() == filterStatus}">
+                    </option>
+                </select>
+                <select name="reason" class="form-control" style="width:auto;">
+                    <option value="">Todos los motivos</option>
+                    <option th:each="r : ${reasons}" th:value="${r}" th:text="${r}"
+                        th:selected="${r.name() == filterReason}">
+                    </option>
+                </select>
+                <select name="targetType" class="form-control" style="width:auto;">
+                    <option value="">Todos los tipos</option>
+                    <option th:each="t : ${targetTypes}" th:value="${t}" th:text="${t}"
+                        th:selected="${t.name() == filterTarget}">
+                    </option>
+                </select>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a th:href="@{/adminControlPanel/reports}" class="btn btn-secondary">Limpiar</a>
+            </form>
+        </div>
+
+        <!-- Tabla -->
+        <div class="card" style="padding:0; overflow:hidden;">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Estado</th>
+                            <th>Tipo</th>
+                            <th>Motivo</th>
+                            <th>Reportado por</th>
+                            <th>Contenido ID</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${reports.content.empty}">
+                            <td colspan="8" style="text-align:center; padding:28px; color:#9E9E9E;">No hay reportes con
+                                estos filtros.</td>
+                        </tr>
+                        <tr th:each="r : ${reports.content}">
+                            <td style="font-weight:600;">#<span th:text="${r.id}"></span></td>
+                            <td>
+                                <span th:switch="${r.status}">
+                                    <span th:case="'PENDING'" class="badge badge-pending"> <span
+                                            class="dot dot-pending"></span> Pendiente</span>
+                                    <span th:case="'REVIEWING'" class="badge badge-reviewing"><span
+                                            class="dot dot-reviewing"></span> En revisión</span>
+                                    <span th:case="'RESOLVED'" class="badge badge-resolved"> <span
+                                            class="dot dot-resolved"></span> Resuelto</span>
+                                    <span th:case="'DISMISSED'" class="badge badge-dismissed"><span
+                                            class="dot dot-dismissed"></span> Desestimado</span>
+                                    <span th:case="*" class="badge" th:text="${r.status}"></span>
+                                </span>
+                            </td>
+                            <td>
+                                <span th:switch="${r.targetType}">
+                                    <span th:case="'USER'" class="badge badge-user">Usuario</span>
+                                    <span th:case="'RECIPE'" class="badge badge-recipe">Receta</span>
+                                    <span th:case="'REVIEW'" class="badge badge-review">Reseña</span>
+                                    <span th:case="*" class="badge" th:text="${r.targetType}"></span>
+                                </span>
+                            </td>
+                            <td class="text-muted" style="font-size:12px;">
+                                <span th:each="reason,iter : ${r.reasons}"
+                                    th:text="${reason + (iter.last ? '' : ', ')}"></span>
+                            </td>
+                            <td th:text="${r.reporterUsername}"></td>
+                            <td class="text-muted" th:text="${r.targetId}"></td>
+                            <td class="text-muted" style="font-size:12px;"
+                                th:text="${#temporals.format(r.createdAt, 'dd/MM/yy HH:mm')}"></td>
+                            <td>
+                                <a th:href="@{/adminControlPanel/reports/{id}(id=${r.id})}"
+                                    class="btn btn-secondary btn-sm">Ver</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            <div
+                style="padding:14px 18px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:12px; color:var(--text-muted);">
+                    Página <span th:text="${currentPage + 1}"></span> · <span th:text="${reports.totalElements}"></span>
+                    reportes
+                </span>
+                <div class="pagination">
+                    <a th:href="@{/adminControlPanel/reports(page=${currentPage - 1}, status=${filterStatus}, reason=${filterReason}, targetType=${filterTarget})}"
+                        th:classappend="${currentPage == 0} ? 'disabled'" class="page-btn">← Anterior</a>
+                    <a th:href="@{/adminControlPanel/reports(page=${currentPage + 1}, status=${filterStatus}, reason=${filterReason}, targetType=${filterTarget})}"
+                        th:classappend="${reports.last} ? 'disabled'" class="page-btn">Siguiente →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

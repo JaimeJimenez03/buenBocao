@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+
+<head>
+    <title th:text="${editMode} ? 'Editar Evento · Admin' : 'Nuevo Evento · Admin'">Evento · Admin</title>
+</head>
+
+<body>
+    <div>
+        <div class="flex-row" style="margin-bottom:6px;">
+            <a th:href="@{/adminControlPanel/events}" class="btn btn-secondary btn-sm">← Volver</a>
+            <div class="page-title" style="margin:0;" th:text="${editMode} ? 'Editar evento' : 'Crear evento'">Evento
+            </div>
+        </div>
+        <div class="page-sub"
+            th:text="${editMode} ? 'Modifica los datos del evento.' : 'El evento se creará como UPCOMING y será visible para los usuarios.'">
+        </div>
+        <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+        <div class="card" style="max-width:800px;">
+            <form method="post" id="event-form"
+                th:action="${editMode} ? @{/adminControlPanel/events/{id}/edit(id=${event.id})} : @{/adminControlPanel/events/new}">
+                <input type="hidden" name="coverImage" id="coverImageInput" th:value="${event?.coverImage}" />
+
+                <div class="section-label">Información básica</div>
+                <div class="grid-2 mb-20">
+                    <div class="form-group col-full">
+                        <label class="form-label">Título *</label>
+                        <input type="text" name="title" class="form-control" th:value="${event?.title}"
+                            placeholder="Nombre del evento" required maxlength="150" />
+                    </div>
+                    <div class="form-group col-full">
+                        <label class="form-label">Descripción *</label>
+                        <textarea name="description" class="form-control" rows="5"
+                            placeholder="Describe el evento en detalle..." required
+                            th:text="${event?.description}"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de evento *</label>
+                        <select name="type" class="form-control" required>
+                            <option value="">Selecciona un tipo...</option>
+                            <option th:each="t : ${eventTypes}" th:value="${t}"
+                                th:text="${t.name() == 'COOKING_WORKSHOP' ? 'Taller de cocina' : t.name() == 'RECIPE_CHALLENGE' ? 'Reto de recetas' : t.name() == 'LIVE_COOKING' ? 'Cocina en directo' : t.name() == 'TASTING' ? 'Degustacion' : t.name() == 'MEETUP' ? 'Quedada gastronomica' : t.name() == 'COMPETITION' ? 'Competicion' : t.name() == 'MASTERCLASS' ? 'Masterclass con chef' : t.name() == 'SEASONAL' ? 'Evento de temporada' : t.name()}"
+                                th:selected="${event != null and event.type == t}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group" th:if="${editMode}">
+                        <label class="form-label">Estado</label>
+                        <select name="status" class="form-control">
+                            <option th:each="s : ${statuses}" th:value="${s}"
+                                th:text="${s.name() == 'DRAFT' ? 'Borrador' : s.name() == 'UPCOMING' ? 'Proximamente' : s.name() == 'ACTIVE' ? 'En curso' : s.name() == 'FINISHED' ? 'Finalizado' : s.name() == 'CANCELLED' ? 'Cancelado' : s.name()}"
+                                th:selected="${event != null and event.status == s}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group col-full">
+                        <label class="form-label">Requisitos previos (opcional)</label>
+                        <textarea name="requirements" class="form-control" rows="3"
+                            placeholder="Nivel de cocina, materiales necesarios..."
+                            th:text="${event?.requirements}"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tags (separados por comas)</label>
+                        <input type="text" name="tags" class="form-control" th:value="${event?.tags}"
+                            placeholder="pasta, italiana, principiantes..." maxlength="300" />
+                    </div>
+                </div>
+
+                <div class="section-label">Imagen de portada</div>
+                <div style="margin-bottom:20px;">
+                    <div id="imagePreview" style="display:none;margin-bottom:12px;">
+                        <img id="previewImg" src="" alt="Preview"
+                            style="width:100%;max-width:400px;height:200px;object-fit:cover;border-radius:12px;border:2px solid #2E7D32;" />
+                        <button type="button" onclick="removeImage()"
+                            style="display:block;margin-top:8px;font-size:12px;color:#C62828;background:none;border:none;cursor:pointer;padding:0;">X
+                            Eliminar imagen</button>
+                    </div>
+                    <div id="uploadZone"
+                        style="border:2px dashed var(--border);border-radius:12px;padding:32px;text-align:center;cursor:pointer;"
+                        onclick="document.getElementById('fileInput').click()"
+                        ondragover="event.preventDefault();this.style.borderColor='#2E7D32';"
+                        ondragleave="this.style.borderColor='var(--border)';" ondrop="handleDrop(event)">
+                        <div style="font-size:28px;margin-bottom:8px;">imagen</div>
+                        <div style="font-size:14px;font-weight:600;color:var(--text);">Arrastra aqui o <span
+                                style="color:#2E7D32;text-decoration:underline;">selecciona un archivo</span></div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">JPG, PNG, WEBP - Max 10MB -
+                            Rec. 1200x600px</div>
+                        <input type="file" id="fileInput" accept="image/*" style="display:none;"
+                            onchange="handleFileSelect(this)" />
+                    </div>
+                    <div id="uploadProgress"
+                        style="display:none;margin-top:10px;background:#E8F5E9;border-radius:8px;padding:10px 14px;font-size:13px;color:#2E7D32;">
+                        Subiendo imagen...</div>
+                    <div id="uploadError"
+                        style="display:none;margin-top:10px;background:#FFEBEE;border-radius:8px;padding:10px 14px;font-size:13px;color:#C62828;">
+                    </div>
+                </div>
+
+                <div class="section-label">Fechas y lugar</div>
+                <div class="grid-2 mb-20">
+                    <div class="form-group">
+                        <label class="form-label">Fecha y hora de inicio *</label>
+                        <input type="datetime-local" name="startsAt" class="form-control" th:value="${event?.startsAt}"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fecha y hora de fin</label>
+                        <input type="datetime-local" name="endsAt" class="form-control" th:value="${event?.endsAt}" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fecha limite de inscripcion</label>
+                        <input type="datetime-local" name="registrationDeadline" class="form-control"
+                            th:value="${event?.registrationDeadline}" />
+                        <span class="form-hint">Tras esta fecha no se admiten nuevas inscripciones.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ubicacion</label>
+                        <input type="text" name="location" class="form-control" th:value="${event?.location}"
+                            placeholder="Direccion o descripcion del lugar" maxlength="300" />
+                    </div>
+                    <div class="form-group col-full">
+                        <label class="form-label">Enlace para unirse (Zoom, Meet...)</label>
+                        <input type="url" name="joinUrl" class="form-control" th:value="${event?.joinUrl}"
+                            placeholder="https://meet.google.com/abc-defg-hij" maxlength="500" />
+                        <span class="form-hint">Visible solo para participantes inscritos.</span>
+                    </div>
+                    <div class="form-group check-box-group">
+                        <input type="checkbox" name="online" id="online" value="true"
+                            th:checked="${event == null or event.online}" />
+                        <label for="online" class="form-label" style="margin:0;cursor:pointer;">Evento online</label>
+                    </div>
+                </div>
+
+                <div class="section-label">Participantes y acceso</div>
+                <div class="grid-2 mb-20">
+                    <div class="form-group">
+                        <label class="form-label">Minimo de participantes</label>
+                        <input type="number" name="minParticipants" class="form-control"
+                            th:value="${event?.minParticipants}" placeholder="Vacio = sin minimo" min="1" />
+                        <span class="form-hint">Si no se alcanza, el evento puede cancelarse.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Maximo de participantes</label>
+                        <input type="number" name="maxParticipants" class="form-control"
+                            th:value="${event?.maxParticipants}" placeholder="Vacio = sin limite" min="1" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Precio de entrada (EUR)</label>
+                        <input type="number" name="price" class="form-control" th:value="${event?.price}"
+                            placeholder="0.00 = gratuito" min="0" step="0.01" />
+                        <span class="form-hint">Deja vacio o en 0 para evento gratuito.</span>
+                    </div>
+                    <div class="form-group"
+                        style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:#FFF8E1;border-radius:10px;border:1px solid #FFE082;">
+                        <input type="checkbox" name="premiumOnly" id="premiumOnly" value="true"
+                            th:checked="${event != null and event.premiumOnly}"
+                            style="width:18px;height:18px;margin-top:2px;" />
+                        <div>
+                            <label for="premiumOnly" class="form-label"
+                                style="margin:0;cursor:pointer;color:#E65100;">Solo para suscriptores Premium</label>
+                            <span style="font-size:11px;color:#F57F17;display:block;margin-top:2px;">Los usuarios
+                                gratuitos veran pero no podran inscribirse.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+                <div class="flex-row" style="justify-content:flex-end;gap:10px;">
+                    <a th:href="@{/adminControlPanel/events}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary"
+                        th:text="${editMode} ? 'Guardar cambios' : 'Crear evento'">Crear evento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+
+        .col-full {
+            grid-column: 1/-1;
+        }
+
+        .form-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: block;
+        }
+
+        .check-box-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px;
+            background: var(--bg);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .check-box-group input {
+            width: 18px;
+            height: 18px;
+        }
+    </style>
+
+    <script th:inline="javascript">
+        const UPLOAD_URL = /*[[@{/adminControlPanel/events/upload-image}]]*/ '/adminControlPanel/events/upload-image';
+        const existingImage = /*[[${event?.coverImage}]]*/ null;
+        if (existingImage) showPreview(existingImage);
+
+        function showPreview(url) {
+            document.getElementById('previewImg').src = url.startsWith('http') ? url : '/api/v1/storage/' + url;
+            document.getElementById('imagePreview').style.display = 'block';
+            document.getElementById('uploadZone').style.display = 'none';
+            document.getElementById('coverImageInput').value = url;
+        }
+        function removeImage() {
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('uploadZone').style.display = 'block';
+            document.getElementById('coverImageInput').value = '';
+        }
+        function handleFileSelect(input) { if (input.files[0]) uploadFile(input.files[0]); }
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('uploadZone').style.borderColor = 'var(--border)';
+            const f = e.dataTransfer.files[0];
+            if (f && f.type.startsWith('image/')) uploadFile(f);
+            else document.getElementById('uploadError').textContent = 'Solo imagenes.', document.getElementById('uploadError').style.display = 'block';
+        }
+        function uploadFile(file) {
+            if (file.size > 10 * 1024 * 1024) { showErr('Maximo 10MB.'); return; }
+            document.getElementById('uploadProgress').style.display = 'block';
+            document.getElementById('uploadError').style.display = 'none';
+            const fd = new FormData(); fd.append('file', file);
+            fetch(UPLOAD_URL, { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(d => { document.getElementById('uploadProgress').style.display = 'none'; if (d.success && d.data) showPreview(d.data); else showErr(d.message || 'Error.'); })
+                .catch(() => { document.getElementById('uploadProgress').style.display = 'none'; showErr('Error de conexion.'); });
+        }
+        function showErr(msg) { const el = document.getElementById('uploadError'); el.textContent = msg; el.style.display = 'block'; }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div})}">
+
+<head>
+    <title>Eventos · Admin</title>
+</head>
+
+<body>
+    <div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <div class="page-title" style="margin:0;">Eventos</div>
+            <a th:href="@{/adminControlPanel/events/new}" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" width="14" height="14">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Nuevo evento
+            </a>
+        </div>
+        <div class="page-sub">Solo los administradores pueden crear y gestionar eventos.</div>
+
+        <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+        <div class="alert alert-error" th:if="${error}" th:text="${error}"></div>
+
+        <!-- Stats rápidas -->
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:16px;">
+            <div
+                style="background:#fff; border-radius:12px; padding:14px 16px; border:1px solid var(--border); text-align:center;">
+                <div style="font-size:22px; font-weight:700; color:#1565C0;" th:text="${totalUpcoming}">0</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Próximos</div>
+            </div>
+            <div
+                style="background:#fff; border-radius:12px; padding:14px 16px; border:1px solid var(--border); text-align:center;">
+                <div style="font-size:22px; font-weight:700; color:#2E7D32;" th:text="${totalActive}">0</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">En curso</div>
+            </div>
+            <div
+                style="background:#fff; border-radius:12px; padding:14px 16px; border:1px solid var(--border); text-align:center;">
+                <div style="font-size:22px; font-weight:700; color:#757575;" th:text="${totalDraft}">0</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Borradores</div>
+            </div>
+            <div
+                style="background:#fff; border-radius:12px; padding:14px 16px; border:1px solid var(--border); text-align:center;">
+                <div style="font-size:22px; font-weight:700; color:#9E9E9E;" th:text="${totalFinished}">0</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Finalizados</div>
+            </div>
+            <div
+                style="background:#fff; border-radius:12px; padding:14px 16px; border:1px solid var(--border); text-align:center;">
+                <div style="font-size:22px; font-weight:700; color:#C62828;" th:text="${totalCancelled}">0</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Cancelados</div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card">
+            <form method="get" th:action="@{/adminControlPanel/events}" class="flex-row"
+                style="gap:10px; flex-wrap:wrap;">
+                <select name="status" class="form-control" style="width:auto;">
+                    <option value="">Todos los estados</option>
+                    <option th:each="s : ${statuses}" th:value="${s}" th:text="${
+                            s.name() == 'DRAFT'     ? 'Borrador' :
+                            s.name() == 'UPCOMING'  ? 'Próximamente' :
+                            s.name() == 'ACTIVE'    ? 'En curso' :
+                            s.name() == 'FINISHED'  ? 'Finalizado' :
+                            s.name() == 'CANCELLED' ? 'Cancelado' :
+                            s.name()
+                        }" th:selected="${s.name() == filterStatus}">
+                    </option>
+                </select>
+                <select name="type" class="form-control" style="width:auto;">
+                    <option value="">Todos los tipos</option>
+                    <option th:each="t : ${eventTypes}" th:value="${t}" th:text="${
+                            t.name() == 'COOKING_WORKSHOP' ? 'Taller de cocina' :
+                            t.name() == 'RECIPE_CHALLENGE' ? 'Reto de recetas' :
+                            t.name() == 'LIVE_COOKING'     ? 'Cocina en directo' :
+                            t.name() == 'TASTING'          ? 'Degustación' :
+                            t.name() == 'MEETUP'           ? 'Quedada gastronómica' :
+                            t.name() == 'COMPETITION'      ? 'Competición' :
+                            t.name() == 'MASTERCLASS'      ? 'Masterclass con chef' :
+                            t.name() == 'SEASONAL'         ? 'Evento de temporada' :
+                            t.name()
+                        }" th:selected="${t.name() == filterType}">
+                    </option>
+                </select>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a th:href="@{/adminControlPanel/events}" class="btn btn-secondary">Limpiar</a>
+            </form>
+        </div>
+
+        <!-- Tabla -->
+        <div class="card" style="padding:0; overflow:hidden;">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Título</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Inicio</th>
+                            <th>Participantes</th>
+                            <th>Acceso</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${eventsPage == null or eventsPage.content.empty}">
+                            <td colspan="8" style="text-align:center; padding:32px; color:#9E9E9E;">
+                                No hay eventos con los filtros aplicados.
+                            </td>
+                        </tr>
+                        <tr th:each="e : ${eventsPage?.content}">
+                            <td class="text-muted" th:text="'#' + ${e.id}"></td>
+
+                            <td style="max-width:220px;">
+                                <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                                    th:text="${e.title}"></div>
+                                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;"
+                                    th:if="${e.online}">🌐 Online</div>
+                                <div style="font-size:11px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;"
+                                    th:if="${!e.online and e.location != null}" th:text="'📍 ' + ${e.location}"></div>
+                            </td>
+
+                            <td style="font-size:12px; color:var(--text-muted);" th:text="${
+                                    e.type == 'COOKING_WORKSHOP' ? 'Taller' :
+                                    e.type == 'RECIPE_CHALLENGE' ? 'Reto' :
+                                    e.type == 'LIVE_COOKING'     ? 'En directo' :
+                                    e.type == 'TASTING'          ? 'Degustación' :
+                                    e.type == 'MEETUP'           ? 'Quedada' :
+                                    e.type == 'COMPETITION'      ? 'Competición' :
+                                    e.type == 'MASTERCLASS'      ? 'Masterclass' :
+                                    e.type == 'SEASONAL'         ? 'Temporada' :
+                                    e.type
+                                }">
+                            </td>
+
+                            <td>
+                                <span th:switch="${e.status}">
+                                    <span th:case="'UPCOMING'" class="badge badge-resolved">Próximo</span>
+                                    <span th:case="'ACTIVE'" class="badge badge-reviewing">En curso</span>
+                                    <span th:case="'DRAFT'" class="badge badge-dismissed">Borrador</span>
+                                    <span th:case="'FINISHED'" class="badge"
+                                        style="background:#F5F5F5;color:#757575;border:1px solid #E0E0E0;">Finalizado</span>
+                                    <span th:case="'CANCELLED'" class="badge badge-banned">Cancelado</span>
+                                </span>
+                            </td>
+
+                            <td style="font-size:12px; color:var(--text-muted); white-space:nowrap;"
+                                th:text="${e.startsAt != null} ? ${#strings.replace(#strings.substring(e.startsAt.toString(), 0, 16), 'T', ' ')} : '—'">
+                            </td>
+
+                            <td style="font-size:12px; text-align:center; color:var(--text-muted);">
+                                <span th:if="${e.maxParticipants != null}"
+                                    th:text="'/ ' + ${e.maxParticipants} + ' plazas'">—</span>
+                                <span th:if="${e.maxParticipants == null}">Sin límite</span>
+                            </td>
+
+                            <td style="text-align:center;">
+                                <span th:if="${e.premiumOnly}" class="badge"
+                                    style="background:#FFF3E0;color:#E65100;border:1px solid #FFCC80;">👑 Premium</span>
+                                <span th:if="${!e.premiumOnly}"
+                                    style="font-size:12px; color:var(--text-muted);">Todos</span>
+                            </td>
+
+                            <td>
+                                <div class="flex-row" style="gap:6px; flex-wrap:nowrap;">
+                                    <a th:href="@{/adminControlPanel/events/{id}/edit(id=${e.id})}"
+                                        class="btn btn-secondary btn-sm">Editar</a>
+                                    <button class="btn btn-secondary btn-sm" onclick="openStatusModal(this)"
+                                        th:data-eventid="${e.id}" th:data-eventtitle="${e.title}">Estado</button>
+                                    <form method="post" th:action="@{/adminControlPanel/events/{id}/delete(id=${e.id})}"
+                                        onsubmit="return confirm('¿Eliminar el evento «' + this.dataset.title + '»? Esta acción no se puede deshacer.')"
+                                        th:data-title="${e.title}" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            <div th:if="${eventsPage != null}"
+                style="padding:14px 18px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:12px; color:var(--text-muted);">
+                    Página <span th:text="${currentPage + 1}"></span>
+                    · <span th:text="${eventsPage.totalElements}"></span> eventos en total
+                </span>
+                <div class="pagination">
+                    <a th:href="@{/adminControlPanel/events(page=${currentPage - 1}, status=${filterStatus}, type=${filterType})}"
+                        th:classappend="${currentPage == 0} ? 'disabled'" class="page-btn">← Anterior</a>
+                    <a th:href="@{/adminControlPanel/events(page=${currentPage + 1}, status=${filterStatus}, type=${filterType})}"
+                        th:classappend="${eventsPage.last} ? 'disabled'" class="page-btn">Siguiente →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal cambiar estado -->
+        <div id="status-modal"
+            style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999; align-items:center; justify-content:center;">
+            <div
+                style="background:#fff; border-radius:16px; padding:28px; width:100%; max-width:380px; margin:20px; box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+                <h3 style="font-size:16px; margin-bottom:4px;">Cambiar estado del evento</h3>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:18px;" id="status-event-title"></p>
+                <form method="post" id="status-form">
+                    <div class="form-group">
+                        <label class="form-label">Nuevo estado</label>
+                        <select name="status" class="form-control" required>
+                            <option value="DRAFT">Borrador</option>
+                            <option value="UPCOMING">Próximamente</option>
+                            <option value="ACTIVE">En curso</option>
+                            <option value="FINISHED">Finalizado</option>
+                            <option value="CANCELLED">Cancelado</option>
+                        </select>
+                    </div>
+                    <div class="flex-row" style="justify-content:flex-end; gap:8px; margin-top:8px;">
+                        <button type="button" onclick="closeStatusModal()" class="btn btn-secondary">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Confirmar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function openStatusModal(btn) {
+                const id = btn.getAttribute('data-eventid');
+                const title = btn.getAttribute('data-eventtitle');
+                document.getElementById('status-event-title').textContent = title;
+                document.getElementById('status-form').action = '/adminControlPanel/events/' + id + '/status';
+                document.getElementById('status-modal').style.display = 'flex';
+            }
+            function closeStatusModal() {
+                document.getElementById('status-modal').style.display = 'none';
+            }
+            document.getElementById('status-modal').addEventListener('click', function (e) {
+                if (e.target === this) closeStatusModal();
+            });
+        </script>
+    </div>
+</body>
+
+</html>
